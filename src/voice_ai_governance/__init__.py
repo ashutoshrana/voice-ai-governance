@@ -23,8 +23,20 @@ from voice_ai_governance.state import (
 )
 from voice_ai_governance.pii import (
     PIIScrubber,
+    SMSPIIScrubber,
     PIIPattern,
     ScrubResult,
+)
+from voice_ai_governance.sms import (
+    ConsentType,
+    SMSConsentRecord,
+    TCPAPolicy,
+    A2PCampaignType,
+    A2PCampaignConfig,
+    A2PCampaignValidator,
+    OptOutHandler,
+    OmnichannelConsentStore,
+    SMSComplianceResult,
 )
 from voice_ai_governance.compliance import (
     CompliancePolicy,
@@ -35,8 +47,9 @@ from voice_ai_governance.compliance import (
 )
 from voice_ai_governance.adapters.pipecat import PipecatGovernanceAdapter
 from voice_ai_governance.adapters.twilio import TwilioWarmTransferAdapter
+from voice_ai_governance.adapters.twilio_sms import TwilioSMSAdapter, PostCallSMSBuilder
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = [
     # Escalation
     "ConfidenceGatedEscalationPolicy",
@@ -50,6 +63,7 @@ __all__ = [
     "TransferStatus",
     # PII
     "PIIScrubber",
+    "SMSPIIScrubber",
     "PIIPattern",
     "ScrubResult",
     # Compliance
@@ -58,7 +72,19 @@ __all__ = [
     "FERPAVoicePolicy",
     "EUAIActVoicePolicy",
     "ComplianceViolation",
+    # SMS
+    "ConsentType",
+    "SMSConsentRecord",
+    "TCPAPolicy",
+    "A2PCampaignType",
+    "A2PCampaignConfig",
+    "A2PCampaignValidator",
+    "OptOutHandler",
+    "OmnichannelConsentStore",
+    "SMSComplianceResult",
     # Adapters
     "PipecatGovernanceAdapter",
     "TwilioWarmTransferAdapter",
+    "TwilioSMSAdapter",
+    "PostCallSMSBuilder",
 ]

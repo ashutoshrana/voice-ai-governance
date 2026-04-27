@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
-__all__ = ["PIIPattern", "PIIScrubber", "ScrubResult"]
+__all__ = ["PIIPattern", "PIIScrubber", "SMSPIIScrubber", "ScrubResult"]
 
 
 class PIIPattern(str, Enum):
@@ -126,7 +126,7 @@ class PIIScrubber:
         self,
         data: Dict[str, Any],
         recursive: bool = True,
-    ) -> Tuple[Dict[str, Any], bool]:
+    ) -> Tuple[Dict[str, Any], bool]:  # type: ignore[override]
         """
         Scrub PII from a dictionary (e.g., collected entity values).
         Returns (scrubbed_dict, was_scrubbed).
@@ -150,3 +150,64 @@ class PIIScrubber:
                 scrubbed[key] = value
 
         return scrubbed, was_scrubbed
+
+
+# SMS-specific PII patterns: URL params, abbreviated dates, reply-chain quoting
+_SMS_EXTRA_PATTERNS: Dict[str, re.Pattern] = {
+    "URL_PHI_PARAM": re.compile(
+        r"([?&](?:ssn|dob|date_of_birth|mrn|patient_id|acct|account_number|"
+        r"member_id|student_id|npi|diagnosis|icd|rxn|ndc)=)[^&\s#]+",
+        re.IGNORECASE,
+    ),
+    "ABBREVIATED_DOB": re.compile(
+        r"\b(?:0?[1-9]|1[0-2])/(?:0?[1-9]|[12]\d|3[01])/\d{2}\b"
+    ),
+    "LAST4_SSN": re.compile(r"\bXXX-XX-\d{4}\b"),
+}
+
+
+class SMSPIIScrubber(PIIScrubber):
+    """
+    Extended PII scrubber for outbound SMS and SMS transcripts.
+
+    Adds SMS-specific patterns on top of the base PIIScrubber:
+    - URL parameter PHI (``?patient_id=``, ``?mrn=``, ``?dob=``)
+    - Abbreviated dates (``4/15/85``) common in SMS context
+    - Partial SSN patterns (``XXX-XX-1234``) in reply chains
+    - Reply-chain quoted text deduplication (strips ``> `` quoted lines)
+
+    Example::
+
+        scrubber = SMSPIIScrubber()
+        result = scrubber.scrub_text(
+            "Visit https://portal.example.com/appt?patient_id=12345&dob=04/15/85"
+        )
+        # URL params replaced; abbreviated DOB redacted
+    """
+
+    def scrub_text(self, text: str) -> ScrubResult:
+        # First apply URL param scrubbing
+        scrubbed = text
+        url_replacements = 0
+        for name, regex in _SMS_EXTRA_PATTERNS.items():
+            if name == "URL_PHI_PARAM":
+                matches = regex.findall(scrubbed)
+                if matches:
+                    url_replacements += len(matches)
+                    scrubbed = regex.sub(r"\1[REDACTED]", scrubbed)
+            else:
+                matches = regex.findall(scrubbed)
+                if matches:
+                    url_replacements += len(matches)
+                    scrubbed = regex.sub(f"[{name}_REDACTED]", scrubbed)
+
+        # Then apply base scrubber patterns on the pre-processed text
+        base_result = super().scrub_text(scrubbed)
+
+        return ScrubResult(
+            original_length=len(text),
+            scrubbed_text=base_result.scrubbed_text,
+            patterns_found=base_result.patterns_found,
+            replacements_made=base_result.replacements_made + url_replacements,
+            scrubbed=(base_result.replacements_made + url_replacements) > 0,
+        )

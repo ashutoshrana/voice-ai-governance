@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "voice-ai-governance"
-version = "0.1.0"
-description = "Compliance enforcement middleware for voice AI pipelines: warm transfer state management, PII scrubbing, confidence-gated escalation, and HIPAA/FERPA/EU AI Act enforcement for Pipecat, LiveKit, and Twilio deployments."
+version = "0.2.0"
+description = "Compliance enforcement middleware for voice and SMS AI pipelines: warm transfer state management, TCPA/A2P 10DLC SMS compliance, PII scrubbing, confidence-gated escalation, and HIPAA/FERPA/EU AI Act enforcement for Pipecat, LiveKit, and Twilio deployments."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
@@ -16,7 +16,8 @@ keywords = [
     "voice-ai", "warm-transfer", "hipaa", "ferpa", "eu-ai-act",
     "pii-scrubbing", "compliance", "pipecat", "twilio", "livekit",
     "contact-center", "voice-agent", "escalation", "confidence-gating",
-    "owasp-agentic-ai", "regulated-industries", "enterprise-ai"
+    "owasp-agentic-ai", "regulated-industries", "enterprise-ai",
+    "tcpa", "a2p-10dlc", "sms-compliance", "twilio-sms", "omnichannel-consent"
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
