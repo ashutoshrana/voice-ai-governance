@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this library in your work, please cite using the metadata below."
+type: software
+title: "voice-ai-governance: Compliance Enforcement Middleware for Voice AI Pipelines"
+abstract: >
+  Compliance enforcement middleware for voice and SMS AI pipelines handling
+  warm transfer state management, PII scrubbing, confidence-gated escalation,
+  and regulatory enforcement across HIPAA, FERPA, TCPA, and EU AI Act requirements.
+  Supports Pipecat, Twilio ConversationRelay, and LiveKit deployments.
+authors:
+  - family-names: "Rana"
+    given-names: "Ashutosh"
+    affiliation: "CherryRoad Technologies"
+repository-code: "https://github.com/ashutoshrana/voice-ai-governance"
+license: MIT
+keywords:
+  - voice-ai
+  - compliance
+  - tcpa
+  - hipaa
+  - ferpa
+  - eu-ai-act
+  - warm-transfer
+  - pii-scrubbing
+  - pipecat
+  - twilio
+date-released: "2026-04-25"
