@@ -1,0 +1,35 @@
+name: Welcome first-time contributors
+
+on:
+  pull_request_target:
+    types: [opened]
+  issues:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Welcome new contributor
+        uses: actions/first-interaction@v3
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: |
+            Thanks for opening your first issue here!
+
+            To help us triage it quickly, please make sure you've filled out all sections of the issue template.
+
+            While you wait, you might find these resources helpful:
+            - [Contributing Guide](./CONTRIBUTING.md)
+            - [README](./README.md)
+          pr_message: |
+            Thanks for your first pull request here!
+
+            A maintainer will review it shortly. While you wait:
+            - Make sure all CI checks pass
+            - Check that your PR title follows [Conventional Commits](https://www.conventionalcommits.org/) format (e.g. `feat: add AutoGen confidence adapter`)
+            - Ensure the PR description explains the compliance problem and approach
