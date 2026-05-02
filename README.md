@@ -5,6 +5,8 @@
 [![PyPI version](https://badge.fury.io/py/voice-ai-governance.svg)](https://badge.fury.io/py/voice-ai-governance)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Coverage](https://codecov.io/gh/ashutoshrana/voice-ai-governance/branch/main/graph/badge.svg)](https://codecov.io/gh/ashutoshrana/voice-ai-governance)
+[![CI](https://github.com/ashutoshrana/voice-ai-governance/actions/workflows/ci.yml/badge.svg)](https://github.com/ashutoshrana/voice-ai-governance/actions/workflows/ci.yml)
 
 Warm transfer state management, confidence-gated escalation, PII scrubbing, TCPA/A2P 10DLC SMS compliance, and HIPAA/FERPA/EU AI Act enforcement for voice and SMS AI systems built on **Pipecat**, **LiveKit**, **Twilio ConversationRelay**, **Twilio Programmable Messaging**, and any WebRTC-based voice AI platform.
 
