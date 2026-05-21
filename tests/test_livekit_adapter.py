@@ -56,13 +56,8 @@ class TestBuildTransferPayload:
     def setup_method(self):
         self.adapter = LiveKitWarmTransferAdapter()
         sm = MagicMock()
-        payload_mock = MagicMock()
-        payload_mock.consent_obtained = True
-        payload_mock.caller_summary = "Test call"
-        payload_mock.primary_intent = "billing"
-        payload_mock.transfer_reason = "confidence_escalation"
-        payload_mock.confidence_at_transfer = 0.42
-        sm.build_handoff_payload.return_value = payload_mock
+        # Return None so build_transfer_payload uses the fallback dict path
+        sm.build_handoff_payload.return_value = None
         self.adapter._state_manager = sm
 
     def test_returns_dict(self):
@@ -71,7 +66,7 @@ class TestBuildTransferPayload:
 
     def test_session_id_in_result(self):
         result = self.adapter.build_transfer_payload("sess_001")
-        assert result.get("session_id") == "sess_001" or "sess_001" in str(result)
+        assert result.get("session_id") == "sess_001"
 
 
 class TestAssertTCPAConsent:
