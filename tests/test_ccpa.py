@@ -1,65 +1,7 @@
 """Tests for CCPA voice AI compliance module."""
 from __future__ import annotations
 import pytest
-from unittest.mock import MagicMock
-import sys
-import time
-
-for mod in [
-    "voice_ai_governance", "voice_ai_governance.compliance",
-    "voice_ai_governance.state", "voice_ai_governance.pii",
-]:
-    if mod not in sys.modules:
-        # Create realistic stubs
-        m = MagicMock()
-        sys.modules[mod] = m
-
-# Override with real-looking stubs for compliance base classes
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, List
-
-class ViolationSeverity(str, Enum):
-    WARNING = "warning"
-    VIOLATION = "violation"
-    CRITICAL = "critical"
-
-@dataclass
-class ComplianceViolation:
-    regulation: str
-    rule_id: str
-    description: str
-    severity: ViolationSeverity
-    recommended_action: str
-    timestamp: float = field(default_factory=time.time)
-
-@dataclass
-class ComplianceCheckResult:
-    passed: bool
-    violations: List[Any] = field(default_factory=list)
-    required_actions: List[str] = field(default_factory=list)
-    audit_log: Dict[str, Any] = field(default_factory=dict)
-
-import abc
-
-class CompliancePolicy(abc.ABC):
-    @property
-    @abc.abstractmethod
-    def regulation_name(self) -> str: ...
-    @abc.abstractmethod
-    def check(self, context: Dict[str, Any]) -> ComplianceCheckResult: ...
-    @abc.abstractmethod
-    def on_violation(self, violation: Any) -> None: ...
-
-# Inject real stubs
-compliance_mod = sys.modules["voice_ai_governance.compliance"]
-compliance_mod.CompliancePolicy = CompliancePolicy
-compliance_mod.ComplianceCheckResult = ComplianceCheckResult
-compliance_mod.ComplianceViolation = ComplianceViolation
-compliance_mod.ViolationSeverity = ViolationSeverity
-
-sys.path.insert(0, "/tmp/devbuild")
-from ccpa_module import (
+from voice_ai_governance.ccpa import (
     CCPAVoicePolicy,
     CCPAOptOutRecord,
     CCPARequestTracker,
@@ -168,7 +110,7 @@ class TestCCPAOptOutRecord:
             acknowledged=False,
         )
         with pytest.raises((AttributeError, TypeError)):
-            record.consumer_id = "other"  # frozen dataclass
+            record.consumer_id = "other"
 
     def test_fields(self):
         record = CCPAOptOutRecord("c1", "right_to_delete", 1714500000.0, "voice", True)

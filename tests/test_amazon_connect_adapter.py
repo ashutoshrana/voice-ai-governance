@@ -1,26 +1,13 @@
 """Tests for Amazon Connect voice-ai-governance adapter."""
+
 from __future__ import annotations
+
+import types
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, patch
-import sys
-import os
 
-# Stub voice_ai_governance modules
-for mod in [
-    "voice_ai_governance", "voice_ai_governance.state",
-    "voice_ai_governance.compliance", "voice_ai_governance.pii",
-]:
-    if mod not in sys.modules:
-        sys.modules[mod] = MagicMock()
-
-# Stub botocore/boto3
-sys.modules["boto3"] = MagicMock()
-sys.modules["botocore"] = MagicMock()
-sys.modules["botocore.exceptions"] = MagicMock()
-
-# Now import
-sys.path.insert(0, "/tmp/devbuild")
-from amazon_connect_adapter import AmazonConnectAdapter, TCPAConsentError
+from voice_ai_governance.adapters.amazon_connect import AmazonConnectAdapter, TCPAConsentError
 
 
 class TestAmazonConnectAdapterInit:
@@ -53,8 +40,6 @@ class TestBuildTransferPayload:
         self.adapter = AmazonConnectAdapter(instance_id="inst_001")
         sm = MagicMock()
 
-        # Use SimpleNamespace so __dict__ is a real dict with consent fields
-        import types
         state_mock = types.SimpleNamespace(
             consent_obtained=True,
             consent_timestamp=1714500000.0,
@@ -63,7 +48,6 @@ class TestBuildTransferPayload:
         )
         sm.get_state.return_value = state_mock
 
-        # HandoffPayload mock needs properly typed numeric/string fields
         payload_mock = MagicMock()
         payload_mock.caller_summary = "Test call"
         payload_mock.primary_intent = "billing"
@@ -91,7 +75,6 @@ class TestBuildTransferPayload:
 
     def test_tcpa_consent_required(self):
         sm = MagicMock()
-        import types
         state_no_consent = types.SimpleNamespace(
             consent_obtained=False,
             consent_timestamp=None,
