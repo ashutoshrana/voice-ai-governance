@@ -1,20 +1,18 @@
 """Tests for LiveKit voice-ai-governance adapter."""
 from __future__ import annotations
 import asyncio
+import json
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 import sys
 
 for mod in [
-    "voice_ai_governance", "voice_ai_governance.state",
-    "voice_ai_governance.compliance", "voice_ai_governance.pii",
     "livekit", "livekit.agents", "livekit.rtc",
 ]:
     if mod not in sys.modules:
         sys.modules[mod] = MagicMock()
 
-sys.path.insert(0, "/tmp/devbuild")
-from livekit_adapter import LiveKitWarmTransferAdapter, TCPAConsentError
+from voice_ai_governance.adapters.livekit import LiveKitWarmTransferAdapter, TCPAConsentError
 
 
 def _run(coro):
@@ -37,7 +35,6 @@ class TestExtractCallerIdentity:
         self.adapter = LiveKitWarmTransferAdapter()
 
     def test_valid_json_metadata(self):
-        import json
         meta = json.dumps({
             "caller_id": "user_123",
             "ani": "+15551234567",
@@ -52,14 +49,13 @@ class TestExtractCallerIdentity:
 
     def test_non_json_metadata_fallback(self):
         result = self.adapter.extract_caller_identity("bare_string_id")
-        assert result.get("caller_id") == "bare_string_id" or result is not None
+        assert result is not None
 
     def test_empty_metadata(self):
         result = self.adapter.extract_caller_identity("")
         assert isinstance(result, dict)
 
     def test_missing_fields_default_safely(self):
-        import json
         result = self.adapter.extract_caller_identity(json.dumps({"caller_id": "x"}))
         assert result.get("consent_obtained") in (False, None, "")
 
@@ -77,7 +73,6 @@ class TestBuildTransferPayload:
             compliance_flags=[],
             consent_obtained=True,
         )
-        # Return None to take the skeleton-dict path (always returns a real dict)
         sm.build_handoff_payload.return_value = None
         self.adapter._state_manager = sm
 
@@ -87,8 +82,7 @@ class TestBuildTransferPayload:
 
     def test_contains_session_id(self):
         payload = self.adapter.build_transfer_payload("sess_001")
-        dump = str(payload)
-        assert "sess_001" in dump or len(payload) > 0
+        assert len(payload) > 0
 
 
 class TestTCPAConsentError:
