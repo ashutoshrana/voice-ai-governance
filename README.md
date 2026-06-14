@@ -241,6 +241,78 @@ if message.compliance_passed:
     # "Your appointment is confirmed. Details: https://portal.example.com/appt?patient_id=[REDACTED]"
 ```
 
+### LiveKit Agents Warm Transfer
+
+```python
+from voice_ai_governance.adapters.livekit import LiveKitWarmTransferAdapter
+from voice_ai_governance.state import WarmTransferStateManager
+
+adapter = LiveKitWarmTransferAdapter(
+    state_manager=WarmTransferStateManager(redis_client=redis_client),
+)
+
+# In your LiveKit Agents entrypoint:
+async def entrypoint(ctx: JobContext):
+    await ctx.connect()
+    identity = adapter.extract_caller_identity(ctx.job.metadata)
+    # ... run voice pipeline ...
+    # When confidence gate fires:
+    await adapter.on_confidence_low(ctx, confidence_score=0.42, threshold=0.65)
+    # Delivers HIPAA-scrubbed handoff payload over LiveKit data channel,
+    # disconnects the room, routes the SIP call to a human agent.
+```
+
+Requires: `pip install "voice-ai-governance[livekit]"` (installs `livekit-agents>=1.6.0`).
+
+### Amazon Connect Warm Transfer
+
+```python
+from voice_ai_governance.adapters.amazon_connect import AmazonConnectAdapter
+from voice_ai_governance.state import WarmTransferStateManager
+
+adapter = AmazonConnectAdapter(
+    instance_id="arn:aws:connect:us-east-1:123456789012:instance/abc",
+    region_name="us-east-1",
+    state_manager=WarmTransferStateManager(),
+)
+
+# Build Amazon Connect contact attributes payload (TCPA-gated, HIPAA-scrubbed)
+payload = adapter.build_transfer_payload(
+    session_id=session_id,
+    contact_id=contact_id,
+    reason="confidence_escalation",
+)
+# payload["attributes"] maps directly onto Amazon Connect SetAttributes block
+
+# Extract Contact Lens real-time transcript turns
+turns = adapter.extract_transcript(contact_id)
+```
+
+Requires: `pip install "voice-ai-governance[amazon_connect]"` (installs boto3).
+
+### CCPA Consumer Rights Enforcement
+
+```python
+from voice_ai_governance.ccpa import CCPAVoicePolicy, CCPARequestTracker
+
+policy  = CCPAVoicePolicy()
+tracker = CCPARequestTracker()
+
+context = {
+    "consumer_id": "c-001",
+    "california_resident": True,
+    "transcript": "Please delete all my information.",  # phrase-matched
+}
+
+result = policy.check(context)
+if not result.passed:
+    for v in result.violations:
+        print(f"[{v.rule_id}] {v.citation}: {v.description}")
+        # [CCPA-105] Cal. Civil Code §1798.105: Consumer invoked Right to Delete...
+    tracker.record_request(context["consumer_id"], "right_to_delete")
+    # Route caller to human agent; 45-day SLA clock starts now
+```
+
 ### Post-Call SMS Case Summary
 
 ```python
@@ -290,6 +362,11 @@ if result.is_opt_out:
 | HIPAA §164.522 | Consent tracking for voice recording |
 | FERPA §99.31 | Education record access restriction |
 | FERPA §99.37 | Directory information opt-out enforcement |
+| CCPA §1798.100 | Right to Know — detect and route consumer enquiries about collected data |
+| CCPA §1798.105 | Right to Delete — 45-day SLA tracking, inline deletion blocked, route to fulfilment |
+| CCPA §1798.120 | Right to Opt-Out — sale/sharing opt-out within 15 business days |
+| CPRA §1798.121 | Automated Decision-Making opt-out — halt AI decisions, route to human review |
+| CCPA §1798.125 | Right to Non-Discrimination — service-level change on rights exercise prohibited |
 | TCPA 47 U.S.C. §227 | Quiet hours (8am–9pm), PEWC for AI marketing SMS, opt-out suppression |
 | FCC 2024 TCPA Order | One-to-one consent rule; per-campaign consent granularity |
 | CTIA Best Practices | STOP/HELP/UNSUBSCRIBE/CANCEL/END/QUIT keyword interception |
@@ -309,9 +386,9 @@ if result.is_opt_out:
 | Pipecat (pipecat-ai) | `PipecatGovernanceAdapter` | ✅ Supported |
 | Twilio ConversationRelay | `TwilioWarmTransferAdapter` | ✅ Supported |
 | Twilio Programmable Messaging | `TwilioSMSAdapter`, `PostCallSMSBuilder` | ✅ Supported |
-| LiveKit Agents | Coming in v0.3 | 🔜 Planned |
-| Amazon Connect | Coming in v0.3 | 🔜 Planned |
-| Cisco Webex CC | Coming in v0.3 | 🔜 Planned |
+| LiveKit Agents v1.6+ | `LiveKitWarmTransferAdapter` | ✅ Supported |
+| Amazon Connect + Contact Lens | `AmazonConnectAdapter` | ✅ Supported |
+| Cisco Webex CC | Coming in v0.4 | 🔜 Planned |
 | NICE CXone | Coming in v0.4 | 🔜 Planned |
 
 ---

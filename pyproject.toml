@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "voice-ai-governance"
-version = "0.2.0"
+version = "0.3.0"
 description = "Compliance enforcement middleware for voice and SMS AI pipelines: warm transfer state management, TCPA/A2P 10DLC SMS compliance, PII scrubbing, confidence-gated escalation, and HIPAA/FERPA/EU AI Act enforcement for Pipecat, LiveKit, and Twilio deployments."
 readme = "README.md"
 license = {text = "MIT"}
@@ -36,6 +36,9 @@ dependencies = []
 [project.optional-dependencies]
 redis = ["redis>=4.0"]
 pipecat = ["pipecat-ai>=0.0.46"]
+livekit = ["livekit-agents>=1.6.0"]
+amazon_connect = ["boto3>=1.26"]
+all = ["voice-ai-governance[redis,pipecat,amazon_connect]"]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",

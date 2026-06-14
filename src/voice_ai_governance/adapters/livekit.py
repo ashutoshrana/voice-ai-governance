@@ -1,5 +1,5 @@
 """
-LiveKit Agents v1.5.7 warm transfer adapter for voice-ai-governance.
+LiveKit Agents v1.6+ warm transfer adapter for voice-ai-governance.
 
 Integrates TCPA consent gating, HIPAA compliance enforcement, PII scrubbing,
 and structured warm transfer handoff into LiveKit Agents VoicePipelineAgent
@@ -11,7 +11,7 @@ Regulatory citations:
   - EU AI Act: Article 14 (human oversight capability for high-risk AI systems)
 
 Install:
-    pip install livekit-agents>=1.5.7 voice-ai-governance
+    pip install "livekit-agents>=1.6.0" "voice-ai-governance[livekit]"
 
 Usage:
     from livekit.agents import JobContext, WorkerOptions, cli
