@@ -8,7 +8,7 @@ version = "0.3.0"
 description = "Compliance enforcement middleware for voice and SMS AI pipelines: warm transfer state management, TCPA/A2P 10DLC SMS compliance, PII scrubbing, confidence-gated escalation, and HIPAA/FERPA/EU AI Act enforcement for Pipecat, LiveKit, and Twilio deployments."
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
     {name = "Ashutosh Rana", email = "17191144+ashutoshrana@users.noreply.github.com"},
 ]
@@ -24,25 +24,25 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Security",
 ]
 dependencies = []
 
 [project.optional-dependencies]
-redis = ["redis>=4.0"]
+redis = ["redis>=5.0"]
 pipecat = ["pipecat-ai>=0.0.46"]
 livekit = ["livekit-agents>=1.6.0"]
-amazon_connect = ["boto3>=1.26"]
+amazon_connect = ["boto3>=1.35.0"]
 all = ["voice-ai-governance[redis,pipecat,amazon_connect]"]
 dev = [
-    "pytest>=7.0",
-    "pytest-asyncio>=0.21",
-    "pytest-cov>=4.0",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
 ]
 
 [project.urls]
