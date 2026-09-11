@@ -6,6 +6,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.3.0] — pending release
+
+- Complete handoff-field redaction, including nested sequences and name entities; WATCH/MULTI updates with bounded retries and completed-session protection. Source version 0.3.0; release publication is pending.
+
 ## [0.2.0] — 2026-04-27
 
 ### Added — EU AI Act and A2P 10DLC enforcement

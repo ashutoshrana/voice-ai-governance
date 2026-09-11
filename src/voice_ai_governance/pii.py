@@ -54,6 +54,7 @@ _REPLACEMENT_TOKENS: Dict[PIIPattern, str] = {
 
 # Entity keys that are inherently PII
 _PII_ENTITY_KEYS = {
+    "name", "full_name", "first_name", "last_name",
     "ssn", "social_security", "credit_card", "card_number",
     "date_of_birth", "dob", "bank_account", "account_number",
     "medical_record", "mrn", "student_id", "phone", "email",
@@ -145,6 +146,10 @@ class PIIScrubber:
                     was_scrubbed = True
             elif isinstance(value, dict) and recursive:
                 scrubbed[key], child_scrubbed = self.scrub_dict(value)
+                was_scrubbed = was_scrubbed or child_scrubbed
+            elif isinstance(value, (list, tuple)) and recursive:
+                items, child_scrubbed = self.scrub_dict({str(i): item for i, item in enumerate(value)})
+                scrubbed[key] = list(items.values())
                 was_scrubbed = was_scrubbed or child_scrubbed
             else:
                 scrubbed[key] = value

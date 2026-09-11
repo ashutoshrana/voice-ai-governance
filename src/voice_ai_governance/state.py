@@ -278,9 +278,29 @@ class WarmTransferStateManager:
         """
         Atomically update state. Uses Redis WATCH/MULTI for concurrent access.
         """
+        if self._redis is not None:
+            from redis.exceptions import WatchError
+            key = f"vag:state:{session_id}"
+            for _ in range(100):
+                with self._redis.pipeline() as pipe:
+                    try:
+                        pipe.watch(key)
+                        raw = pipe.get(key)
+                        if raw is None:
+                            return None
+                        state = ConversationState.from_dict(json.loads(raw))
+                        updater(state)
+                        pipe.multi()
+                        pipe.setex(key, self._state_ttl, json.dumps(state.to_dict()))
+                        pipe.execute()
+                        return state
+                    except WatchError:
+                        continue
+            raise RuntimeError("State update contention exceeded retry limit")
         state = self.get_state(session_id)
-        if not state:
+        if state is None:
             return None
+        state = ConversationState.from_dict(state.to_dict())
         updater(state)
         self._save(session_id, state)
         return state
@@ -295,18 +315,22 @@ class WarmTransferStateManager:
         if not state:
             return None
 
+        return self._make_payload(state, reason, scrub_pii)
+
+    def _make_payload(self, state: ConversationState, reason: str, scrub_pii: bool) -> HandoffPayload:
+        session_id = state.session_id
         entities = {k: v.value for k, v in state.entities.items()}
         pii_scrubbed = False
 
         if scrub_pii and self._pii_scrubber:
             entities, pii_scrubbed = self._pii_scrubber.scrub_dict(entities)
 
-        return HandoffPayload(
+        payload = HandoffPayload(
             session_id=session_id,
             transfer_reason=reason,
             escalation_trigger=state.escalation_trigger or reason,
             confidence_at_transfer=state.escalation_confidence_score,
-            caller_summary=self._build_summary(state),
+            caller_summary="",
             primary_intent=state.primary_intent,
             sentiment=state.current_sentiment,
             collected_entities=entities,
@@ -317,13 +341,26 @@ class WarmTransferStateManager:
             turn_count=state.turn_count,
         )
 
+        # Build summaries only from sanitized entity values, then scrub every field.
+        payload.caller_summary = (
+            f"Caller interaction ({state.turn_count} turns). "
+            f"Intent: {state.primary_intent or 'unclear'}. "
+            f"Sentiment: {state.current_sentiment or 'neutral'}. "
+            f"Collected: {str(entities) if entities else 'none'}. "
+            f"Reason for transfer: {state.escalation_trigger or reason}."
+        )
+        if scrub_pii and self._pii_scrubber:
+            data, changed = self._pii_scrubber.scrub_dict(asdict(payload))
+            data["pii_scrubbed"] = pii_scrubbed or changed
+            payload = HandoffPayload(**data)
+        return payload
+
     def initiate_transfer(self, session_id: str) -> bool:
-        state = self.get_state(session_id)
-        if not state:
-            return False
-        state.status = TransferStatus.TRANSFERRED
-        self._save(session_id, state)
-        return True
+        def transfer(state: ConversationState) -> None:
+            if state.status != TransferStatus.COMPLETED:
+                state.status = TransferStatus.TRANSFERRED
+        state = self.update_state(session_id, transfer)
+        return state is not None and state.status == TransferStatus.TRANSFERRED
 
     def _save(self, session_id: str, state: ConversationState) -> None:
         if self._redis:
