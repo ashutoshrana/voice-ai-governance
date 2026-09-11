@@ -16,7 +16,7 @@ def redis_socket(tmp_path):
     if not shutil.which('redis-server'):
         pytest.skip('redis-server needed for real Redis integration')
     pytest.importorskip('redis')
-    directory = tempfile.TemporaryDirectory(prefix='vag-', dir='/private/tmp')
+    directory = tempfile.TemporaryDirectory(prefix='vag-')
     path = directory.name + '/redis.sock'
     server = subprocess.Popen(['redis-server', '--port', '0', '--unixsocket', path, '--save', '', '--appendonly', 'no'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
