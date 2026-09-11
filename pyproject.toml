@@ -34,12 +34,13 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-redis = ["redis>=4.0"]
+redis = ["redis>=4.2"]
 pipecat = ["pipecat-ai>=0.0.46"]
 livekit = ["livekit-agents>=1.6.0"]
 amazon_connect = ["boto3>=1.26"]
 all = ["voice-ai-governance[redis,pipecat,amazon_connect]"]
 dev = [
+    "redis>=4.2",
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
     "pytest-cov>=4.0",

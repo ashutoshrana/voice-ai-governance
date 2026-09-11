@@ -27,6 +27,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install ".[dev]"
 
+      - name: Install Redis integration test server
+        run: sudo apt-get update && sudo apt-get install -y redis-server
+
       - name: Run tests
         run: |
           python -m pytest tests/ -v --tb=short
