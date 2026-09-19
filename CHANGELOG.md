@@ -6,13 +6,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## [0.3.1] — 2026-09-19
 
+- Preserve sensitive-field classification when custom patterns redact field names.
 - Return isolated in-memory conversation snapshots and redact nested dictionary keys; reject redaction collisions instead of silently losing entries.
 
-## [0.3.0] — pending release
+## [0.3.0] — 2026-09-11
 
-- Complete handoff-field redaction, including nested sequences and name entities; WATCH/MULTI updates with bounded retries and completed-session protection. Source version 0.3.0; release publication is pending.
+- Complete handoff-field redaction, including nested sequences and name entities; WATCH/MULTI updates with bounded retries and completed-session protection. Released as 0.3.0.
 
 ## [0.2.0] — 2026-04-27
 
@@ -71,10 +72,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## Remaining roadmap
 
 ### Planned
-- LiveKit Agents adapter
-- Amazon Connect adapter
 - CCPA opt-out enforcement (California Consumer Privacy Act)
 - Twilio Programmable Messaging bulk compliance

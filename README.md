@@ -405,15 +405,15 @@ if result.is_opt_out:
 
 MIT License. See [LICENSE](LICENSE).
 
-## Reliability updates (unreleased)
+## Reliability updates (0.3.0)
 
-Complete handoff-field redaction, including nested sequences and name entities; WATCH/MULTI updates with bounded retries and completed-session protection. Source version 0.3.0; release publication is pending.
+Complete handoff-field redaction, including nested sequences and name entities; WATCH/MULTI updates with bounded retries and completed-session protection. Introduced in 0.3.0.
 
 Run `pip install -e ".[dev,redis]"` and `python -m pytest`. Real Redis tests use a temporary Unix socket and require `redis-server`; absent binaries skip those tests. Redis WATCH/MULTI retries at most 100 times. Updaters must have no external side effects: conflicts replay callbacks. Connection failures propagate. Completed sessions cannot be retransferred. Async in-memory locks remain for the manager lifetime; use Redis/TTL for long-lived services. Synchronous in-memory use is single-threaded.
 
 Entities are scrubbed before generating summaries; the complete payload is then scrubbed, including nested lists. Configured regex/key-based redaction cannot guarantee detection of every form of personal data. Source state stays intact.
 
-## September 2026 boundary review (unreleased)
+## September 2026 boundary review (0.3.1)
 
 Return isolated in-memory conversation snapshots and redact nested dictionary keys; reject redaction collisions instead of silently losing entries.
 
