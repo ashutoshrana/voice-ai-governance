@@ -136,6 +136,13 @@ class PIIScrubber:
         was_scrubbed = False
 
         for key, value in data.items():
+            if not isinstance(key, str):
+                raise TypeError("PII dictionary keys must be strings")
+            result = self.scrub_text(key)
+            key = result.scrubbed_text
+            if key in scrubbed:
+                raise ValueError("PII redaction causes a dictionary key collision")
+            was_scrubbed = was_scrubbed or result.scrubbed
             if key.lower() in self.pii_entity_keys:
                 scrubbed[key] = f"[{key.upper()}_REDACTED]"
                 was_scrubbed = True

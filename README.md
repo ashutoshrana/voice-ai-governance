@@ -412,3 +412,11 @@ Complete handoff-field redaction, including nested sequences and name entities; 
 Run `pip install -e ".[dev,redis]"` and `python -m pytest`. Real Redis tests use a temporary Unix socket and require `redis-server`; absent binaries skip those tests. Redis WATCH/MULTI retries at most 100 times. Updaters must have no external side effects: conflicts replay callbacks. Connection failures propagate. Completed sessions cannot be retransferred. Async in-memory locks remain for the manager lifetime; use Redis/TTL for long-lived services. Synchronous in-memory use is single-threaded.
 
 Entities are scrubbed before generating summaries; the complete payload is then scrubbed, including nested lists. Configured regex/key-based redaction cannot guarantee detection of every form of personal data. Source state stays intact.
+
+## September 2026 boundary review (unreleased)
+
+Return isolated in-memory conversation snapshots and redact nested dictionary keys; reject redaction collisions instead of silently losing entries.
+
+State returned by `get_state` and `update_state` is a snapshot; persist changes through `update_state`. This matches Redis behavior and prevents callers from mutating terminal state outside the update path. Dictionary keys are checked with the configured PII patterns, including inside sequences. Two keys that redact to the same text raise `ValueError`; non-string keys raise `TypeError`. Original data remains untouched. Regex/key detection is still bounded by its configured patterns.
+
+LiveKit session `userdata` is shared across agents: keep authoritative state behind the manager rather than exposing its internals. [Official session guidance](https://docs.livekit.io/agents/logic/sessions/). This change does not claim live telephony validation or a full modern LiveKit SDK migration.
