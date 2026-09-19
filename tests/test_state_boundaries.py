@@ -38,3 +38,11 @@ def test_pii_in_keys_removed_and_collisions_fail_closed():
     assert changed and 'caller@example.com' not in json.dumps(result)
     with pytest.raises(ValueError, match='collision'):
         scrubber.scrub_dict({'a@example.com': 1, 'b@example.com': 2})
+
+def test_custom_key_redaction_preserves_sensitive_value_classification():
+    import re
+    scrubber = PIIScrubber(custom_patterns={'label': re.compile('name')})
+    result, changed = scrubber.scrub_dict({'name': 'Alice Example'})
+    assert changed
+    assert 'Alice Example' not in json.dumps(result)
+    assert '[LABEL_REDACTED]' in result
