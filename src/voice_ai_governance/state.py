@@ -268,7 +268,8 @@ class WarmTransferStateManager:
             if raw:
                 return ConversationState.from_dict(json.loads(raw))
             return None
-        return self._local_store.get(session_id)
+        state = self._local_store.get(session_id)
+        return ConversationState.from_dict(state.to_dict()) if state is not None else None
 
     def update_state(
         self,
@@ -370,7 +371,7 @@ class WarmTransferStateManager:
                 json.dumps(state.to_dict()),
             )
         else:
-            self._local_store[session_id] = state
+            self._local_store[session_id] = ConversationState.from_dict(state.to_dict())
 
     @staticmethod
     def _build_summary(state: ConversationState) -> str:

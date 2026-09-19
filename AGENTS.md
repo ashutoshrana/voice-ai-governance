@@ -7,3 +7,4 @@
 
 | Redis tests pass on macOS but fail on Linux CI | Test fixture hardcoded a macOS-only temporary directory | Use the platform temporary directory; verify local Redis tests and Linux CI |
 | Package and runtime versions diverge or reuse an existing release | Release metadata was not validated against runtime, tag, and artifacts | Synchronize versions, verify wheel/sdist metadata and isolated imports, publish only the validated artifact |
+| A closed session can be reopened through a retrieved object; PII survives in keys | Local storage shared object references and scrubber visited values only | Copy state at read/write boundaries and redact keys with collision rejection |

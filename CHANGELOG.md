@@ -6,6 +6,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+- Return isolated in-memory conversation snapshots and redact nested dictionary keys; reject redaction collisions instead of silently losing entries.
+
 ## [0.3.0] — pending release
 
 - Complete handoff-field redaction, including nested sequences and name entities; WATCH/MULTI updates with bounded retries and completed-session protection. Source version 0.3.0; release publication is pending.
