@@ -70,7 +70,7 @@ jobs:
           python -m venv .wheelcheck
           .wheelcheck/bin/python -m pip install --no-deps dist/*.whl
           .wheelcheck/bin/python -I -c 'import voice_ai_governance as p; from importlib.metadata import version; assert p.__version__ == version("voice-ai-governance"); assert callable(p.WarmTransferStateManager); assert callable(p.PIIScrubber)'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: python-release-dist
           path: dist/
@@ -84,7 +84,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: python-release-dist
           path: dist/
