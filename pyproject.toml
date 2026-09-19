@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "voice-ai-governance"
-version = "0.3.0"
+version = "0.3.1"
 description = "Compliance enforcement middleware for voice and SMS AI pipelines: warm transfer state management, TCPA/A2P 10DLC SMS compliance, PII scrubbing, confidence-gated escalation, and HIPAA/FERPA/EU AI Act enforcement for Pipecat, LiveKit, and Twilio deployments."
 readme = "README.md"
 license = {text = "MIT"}
