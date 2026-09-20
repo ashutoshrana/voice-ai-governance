@@ -12,16 +12,19 @@ Warm transfer state management, confidence-gated escalation, PII scrubbing, TCPA
 
 ---
 
-## The Problem
+## What it does and when to use it
 
-80% of enterprises plan to deploy voice AI by 2026. Yet **only 7% of contact centers** deliver seamless context-preserving handoffs, and **no voice AI framework ships with regulated-industry compliance enforcement**.
+This Python library helps voice and messaging application developers carry conversation context into a human handoff, redact configured personal-data patterns, and apply consent and escalation checks. Use it when your application already handles calls or messages and needs reusable checks around those events. The current published version is [0.3.1](https://pypi.org/project/voice-ai-governance/0.3.1/).
 
-When a voice agent escalates a call in a healthcare or higher education context, three things must happen atomically:
-1. **PII must be scrubbed** from the transfer payload (HIPAA §164.514, FERPA §99.31)
-2. **State must be preserved** without race conditions across concurrent WebSocket + TTS + queue I/O
-3. **Confidence must gate the transfer** — too early wastes human time; too late breaks trust
+For example, a support caller may need a human after an uncertain answer. Your application records turns through the state manager, evaluates whether to escalate, builds a scrubbed handoff payload, and passes it to its contact-center integration. The receiving agent gets context without requiring the caller to repeat the entire conversation.
 
-`voice-ai-governance` solves all three.
+Start with the [warm-transfer example below](#warm-transfer-state-management), then the [voice-session example](examples/tcpa_hipaa_voice_session.py). The [state manager](src/voice_ai_governance/state.py), [async state manager](src/voice_ai_governance/async_state.py), and [PII scrubber](src/voice_ai_governance/pii.py) contain the implementation-level API details. The [project guide](https://github.com/ashutoshrana/ashutoshrana/blob/main/PROJECT_GUIDE.md) explains how this package fits with the other libraries.
+
+### Integration and runtime limits
+
+Your application owns authentication, telephony sessions, provider credentials, routing, and confirmation that a human accepted the transfer. An adapter builds or sends integration-specific data; a successful payload build is not proof of a completed call transfer. The included adapters are starting points to test against your installed SDK and provider configuration. In particular, the LiveKit adapter has not been validated against a live telephony deployment or fully migrated to the modern SDK.
+
+Regex/key-based redaction can miss personal data outside its configured patterns. Consent checks use the records you supply; the library does not independently establish that consent is valid. Regulatory references describe intended control areas, not certification or a guarantee of legal compliance. Redis transactions protect state updates, but external telephony delivery is not part of that transaction. See [reliability limits](#reliability-updates-030) for concurrency, retries, and storage behavior.
 
 ---
 
