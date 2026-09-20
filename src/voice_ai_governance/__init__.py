@@ -49,7 +49,7 @@ from voice_ai_governance.adapters.pipecat import PipecatGovernanceAdapter
 from voice_ai_governance.adapters.twilio import TwilioWarmTransferAdapter
 from voice_ai_governance.adapters.twilio_sms import TwilioSMSAdapter, PostCallSMSBuilder
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 __all__ = [
     # Escalation
     "ConfidenceGatedEscalationPolicy",
