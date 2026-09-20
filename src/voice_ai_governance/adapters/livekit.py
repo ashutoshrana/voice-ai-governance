@@ -22,7 +22,8 @@ Usage:
     async def entrypoint(ctx: JobContext):
         await ctx.connect()
         # On confidence gate trigger:
-        await adapter.on_confidence_low(ctx, confidence_score=0.42, threshold=0.65)
+        await adapter.on_confidence_low(ctx, confidence_score=0.42, threshold=0.65,
+                                        recipient_identity="authorized-recipient")
 
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
 """
@@ -46,7 +47,7 @@ except ImportError:
 
 from voice_ai_governance.compliance import HIPAAVoicePolicy
 from voice_ai_governance.pii import PIIScrubber
-from voice_ai_governance.state import WarmTransferStateManager
+from voice_ai_governance.state import TransferStatus, WarmTransferStateManager
 
 __all__ = [
     "LiveKitWarmTransferAdapter",
@@ -67,16 +68,10 @@ _TRANSFER_CHANNEL = "voice_governance_transfer"
 
 
 class TCPAConsentError(Exception):
-    """
-    Raised when a LiveKit job is entered without documented TCPA prior express consent.
+    """Raised when required consent metadata is absent.
 
-    The Telephone Consumer Protection Act (47 U.S.C. § 227) requires written prior
-    express consent before initiating an autodialed or prerecorded voice call. This
-    error surfaces at the agent entrypoint so the session is rejected before any
-    voice processing begins, preventing the enterprise from incurring per-call
-    exposure.
-
-    Catching callers should disconnect the room and log the event for compliance audit.
+    The application decides how to handle the call and validates the underlying
+    consent record. This check alone does not establish legal compliance.
     """
 
     def __init__(
@@ -96,20 +91,10 @@ class TCPAConsentError(Exception):
 
 
 class LiveKitWarmTransferAdapter:
-    """
-    LiveKit Agents v1.5.7 warm transfer adapter with regulatory compliance.
+    """Build and publish scrubbed handoff context to one selected room participant.
 
-    Wraps WarmTransferStateManager and HIPAAVoicePolicy to produce a structured
-    warm transfer payload delivered via LiveKit data channel (reliable unicast)
-    when the confidence gate or TCPA consent gate fires.
-
-    The transfer payload mirrors the HandoffPayload schema used by the Twilio
-    adapter, allowing the same downstream contact center routing logic to handle
-    transfers from both platforms.
-
-    EU AI Act Article 14 obligation: this adapter constitutes the human-oversight
-    intervention mechanism required for high-risk AI voice deployments. The
-    ``transfer`` method is the override/intervene path mandated by Art. 14.3(c).
+    The application authorizes the recipient and owns native call orchestration.
+    Publication is not proof of receipt, human acceptance, or legal compliance.
 
     Args:
         state_manager: WarmTransferStateManager instance. If None, a stateless
@@ -126,7 +111,10 @@ class LiveKitWarmTransferAdapter:
             await ctx.connect()
             session_id = adapter.extract_caller_identity(ctx.job.metadata)["session_id"]
             # Pipeline runs; confidence gate fires at some threshold:
-            await adapter.on_confidence_low(ctx, confidence_score=0.41, threshold=0.65)
+            await adapter.on_confidence_low(
+                ctx, confidence_score=0.41, threshold=0.65,
+                recipient_identity=authorized_recipient_identity,
+            )
     """
 
     def __init__(
@@ -300,87 +288,46 @@ class LiveKitWarmTransferAdapter:
     # Core transfer execution
     # ------------------------------------------------------------------
 
+    def _publication_session(self, ctx: Any, recipient_identity: str) -> str:
+        """Validate the explicit destination and current local session before use."""
+        if not _LIVEKIT_AVAILABLE:
+            raise RuntimeError("livekit-agents is not installed; install voice-ai-governance[livekit]")
+        if ctx is None:
+            raise ValueError("A connected LiveKit context is required")
+        if not isinstance(recipient_identity, str) or not recipient_identity.strip():
+            raise ValueError("An explicit recipient identity is required")
+        participants = getattr(getattr(ctx, "room", None), "remote_participants", {})
+        if recipient_identity not in participants:
+            raise ValueError("The selected recipient is not present in the room")
+        metadata = getattr(getattr(ctx, "job", None), "metadata", None)
+        identity = self.extract_caller_identity(metadata)
+        self._assert_tcpa_consent(identity)
+        session_id = identity.get("session_id")
+        state = self._state_manager.get_state(session_id) if session_id else None
+        if state is None or state.status not in (TransferStatus.ACTIVE, TransferStatus.ESCALATING):
+            raise ValueError("An active or escalating registered session is required")
+        return session_id
+
     async def transfer(
         self,
         ctx: Any,
         reason: str = "confidence_escalation",
+        *,
+        recipient_identity: str,
     ) -> None:
+        """Publish scrubbed handoff context to one application-selected recipient.
+
+        The historical method name is retained, but publication is not a call
+        transfer or proof of receipt. The application must authorize the recipient
+        and orchestrate the human connection through the provider's native APIs.
+        This method never disconnects the room or marks the session transferred.
+        Publication errors and cancellation propagate to the caller. A recipient
+        leaving after validation remains a delivery risk requiring application ACKs.
         """
-        Execute a warm transfer from the LiveKit room to a human agent.
-
-        Sequence:
-        1. Assert TCPA consent from job metadata (raises TCPAConsentError on failure).
-        2. Look up or create a session in the state manager.
-        3. Build and HIPAA-check the transfer payload.
-        4. Publish the payload to the LiveKit room data channel (reliable unicast
-           to all remote participants or a target SIP participant).
-        5. Mark the session as transferred in state manager.
-        6. Disconnect the room so LiveKit routes the SIP call to the PSTN trunk.
-
-        The data channel publish (step 4) serves as the machine-readable handoff
-        record required by EU AI Act Article 14 for audit; the room disconnect
-        (step 6) is the actual human-override action.
-
-        Args:
-            ctx: LiveKit JobContext. May be None when running in test harness
-                 without a real LiveKit connection; the method degrades gracefully.
-            reason: Transfer reason forwarded to the contact center routing system.
-
-        Raises:
-            TCPAConsentError: If prior express consent is not documented in
-                ``ctx.job.metadata``.
-            RuntimeError: If LiveKit SDK is not installed.
-        """
-        if not _LIVEKIT_AVAILABLE:
-            raise RuntimeError(
-                "livekit-agents is not installed. "
-                "Run: pip install 'livekit-agents>=1.5.7'"
-            )
-
-        if ctx is None:
-            logger.warning("transfer() called with ctx=None; skipping LiveKit operations")
-            return
-
-        metadata_str = getattr(getattr(ctx, "job", None), "metadata", None)
-        identity = self.extract_caller_identity(metadata_str)
-        self._assert_tcpa_consent(identity)
-
-        session_id = identity["session_id"]
-        if session_id is None:
-            session_id = self._state_manager.create_session(
-                platform_metadata={"livekit_room": _room_name(ctx)}
-            )
-
-        payload = self.build_transfer_payload(
-            session_id=session_id,
-            reason=reason,
-            scrub_pii=True,
-        )
-
-        self._state_manager.initiate_transfer(session_id)
-
-        await _publish_transfer_data(ctx, payload)
-
-        try:
-            await ctx.room.disconnect()
-        except Exception as exc:
-            logger.error(
-                "LiveKit room.disconnect() failed during warm transfer "
-                "(session=%s, reason=%s): %s",
-                session_id,
-                reason,
-                exc,
-            )
-            raise RuntimeError(
-                f"Warm transfer room disconnect failed: {exc}"
-            ) from exc
-
-        logger.info(
-            "Warm transfer complete (session=%s, reason=%s, hipaa_passed=%s)",
-            session_id,
-            reason,
-            payload.get("hipaa_audit", {}).get("passed"),
-        )
+        session_id = self._publication_session(ctx, recipient_identity)
+        payload = self.build_transfer_payload(session_id, reason=reason, scrub_pii=True)
+        await _publish_transfer_data(ctx, payload, recipient_identity)
+        logger.info("Handoff context publication submitted (session=%s)", session_id)
 
     # ------------------------------------------------------------------
     # Confidence gate entry point
@@ -391,48 +338,21 @@ class LiveKitWarmTransferAdapter:
         ctx: Any,
         confidence_score: float,
         threshold: float,
+        *,
+        recipient_identity: str,
     ) -> None:
+        """Record the escalation signal and publish context to a selected recipient.
+
+        The caller determines that escalation is needed. Native orchestration must
+        separately confirm a human connection; this hook does not end the call.
+        Invalid destinations, consent, or sessions are rejected before state updates.
         """
-        Called by the confidence gate when agent certainty drops below threshold.
-
-        This is the primary integration hook for VoicePipelineAgent deployments.
-        Attach it to your confidence evaluator callback; the method handles the
-        full transfer lifecycle including consent verification, HIPAA scrubbing,
-        and LiveKit room handoff.
-
-        EU AI Act Article 14.3(c) requires high-risk AI systems to support human
-        override "whenever" the system's outputs may be inaccurate or unsafe. A
-        sub-threshold confidence score is the operative "whenever" signal here.
-
-        Args:
-            ctx: LiveKit JobContext passed through from the agent entrypoint.
-            confidence_score: Composite confidence score at trigger time [0.0, 1.0].
-            threshold: The threshold value that was breached, forwarded to the
-                transfer payload for contact center routing logic.
-
-        Raises:
-            TCPAConsentError: Propagated from ``transfer()`` without modification
-                so callers can catch it and cleanly reject the session.
-        """
-        logger.info(
-            "Confidence gate fired (score=%.3f < threshold=%.3f); initiating warm transfer",
-            confidence_score,
-            threshold,
+        session_id = self._publication_session(ctx, recipient_identity)
+        self._state_manager.update_state(
+            session_id,
+            lambda state: _set_escalation_fields(state, confidence_score, threshold),
         )
-
-        metadata_str = getattr(getattr(ctx, "job", None), "metadata", None)
-        identity = self.extract_caller_identity(metadata_str)
-        session_id = identity.get("session_id")
-
-        if session_id and self._state_manager.get_state(session_id):
-            self._state_manager.update_state(
-                session_id,
-                lambda state: _set_escalation_fields(
-                    state, confidence_score, threshold
-                ),
-            )
-
-        await self.transfer(ctx, reason="confidence_escalation")
+        await self.transfer(ctx, reason="confidence_escalation", recipient_identity=recipient_identity)
 
 
 # ------------------------------------------------------------------
@@ -455,42 +375,16 @@ def _set_escalation_fields(state: Any, score: float, threshold: float) -> None:
     state.platform_metadata["escalated_at"] = time.time()
 
 
-async def _publish_transfer_data(ctx: Any, payload: Dict[str, Any]) -> None:
+async def _publish_transfer_data(ctx: Any, payload: Dict[str, Any], recipient_identity: str) -> None:
+    """Submit one reliable packet; delivery and human acceptance are not guaranteed.
+
+    Never broaden the destination or suppress SDK failures. The caller owns
+    acknowledgment, retries, and connection orchestration.
     """
-    Publish warm transfer payload to the LiveKit room data channel.
-
-    Uses reliable data packets (SCTP ordered delivery) so the payload is
-    guaranteed to arrive before the room disconnect triggers SIP re-routing.
-    Targets all remote participants rather than a specific identity because the
-    SIP trunk participant identity is assigned by the LiveKit SIP service and
-    not known deterministically at transfer time.
-
-    Fails silently with an error log rather than raising, because a failed
-    data-channel publish should not prevent the room disconnect — the transfer
-    must proceed even if the handoff record delivery fails.
-    """
-    try:
-        raw = json.dumps(payload, default=str).encode()
-        room = ctx.room
-
-        destination_identities = list(room.remote_participants.keys()) or None
-
-        await room.local_participant.publish_data(
-            raw,
-            reliable=True,
-            destination_identities=destination_identities,
-            topic=_TRANSFER_CHANNEL,
-        )
-    except AttributeError as exc:
-        # publish_data signature changed between LiveKit SDK versions; log and
-        # continue so the room disconnect is not blocked.
-        logger.error(
-            "publish_data attribute error — check livekit-agents version "
-            ">= 1.5.7 is installed: %s",
-            exc,
-        )
-    except Exception as exc:
-        logger.error(
-            "Failed to publish warm transfer payload over LiveKit data channel: %s",
-            exc,
-        )
+    raw = json.dumps(payload, default=str).encode()
+    await ctx.room.local_participant.publish_data(
+        raw,
+        reliable=True,
+        destination_identities=[recipient_identity],
+        topic=_TRANSFER_CHANNEL,
+    )
