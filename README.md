@@ -246,6 +246,8 @@ if message.compliance_passed:
 
 ### LiveKit Agents Warm Transfer
 
+Run the [no-credentials handoff contract demo](docs/HANDOFF_CONTRACT.md) to distinguish context publication from a confirmed connection.
+
 ```python
 from voice_ai_governance.adapters.livekit import LiveKitWarmTransferAdapter
 from voice_ai_governance.state import WarmTransferStateManager
