@@ -260,12 +260,28 @@ async def entrypoint(ctx: JobContext):
     identity = adapter.extract_caller_identity(ctx.job.metadata)
     # ... run voice pipeline ...
     # When confidence gate fires:
-    await adapter.on_confidence_low(ctx, confidence_score=0.42, threshold=0.65)
-    # Delivers HIPAA-scrubbed handoff payload over LiveKit data channel,
-    # disconnects the room, routes the SIP call to a human agent.
+    await adapter.on_confidence_low(
+        ctx, confidence_score=0.42, threshold=0.65,
+        recipient_identity=authorized_recipient_identity,
+    )
+    # Submits scrubbed context only to the selected room participant.
+    # Separately use native provider orchestration to connect the human.
 ```
 
 Requires: `pip install "voice-ai-governance[livekit]"` (installs `livekit-agents>=1.6.0`).
+
+**Migration:** `transfer()` and `on_confidence_low()` now require a keyword-only
+`recipient_identity`. Your application must authorize that participant and register
+an active or escalating session whose ID is in job metadata before calling them.
+Missing recipients, invalid sessions, and consent failures stop publication;
+SDK publication failures and cancellation propagate. These methods never disconnect
+the room or mark the session transferred. The historical `transfer()` name now
+means context publication only. Reliable packets do not prove receipt or a human
+connection. Use [LiveKit's native warm-transfer workflow](https://docs.livekit.io/telephony/features/transfers/warm/)
+for consultation, connection, and failure return; confirm its outcome before updating
+transfer state. Recipient departure after validation, duplicate publications, and
+application acknowledgments remain the host application's responsibility.
+
 
 ### Amazon Connect Warm Transfer
 

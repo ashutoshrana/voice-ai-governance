@@ -6,6 +6,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.4.0] — Unreleased
+
+- Require an explicit present recipient for LiveKit handoff-context publication.
+- Propagate publication errors and cancellation; publication does not disconnect the caller or claim a connected transfer.
+- Keep native call orchestration and recipient authorization with the application; see the README migration note.
+- Prepare OIDC publishing and artifact attestations; account configuration and release verification remain required.
+
 ## [0.3.1] — 2026-09-19
 
 - Preserve sensitive-field classification when custom patterns redact field names.
