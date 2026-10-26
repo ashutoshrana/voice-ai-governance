@@ -319,6 +319,8 @@ class WarmTransferStateManager:
         return self._make_payload(state, reason, scrub_pii)
 
     def _make_payload(self, state: ConversationState, reason: str, scrub_pii: bool) -> HandoffPayload:
+        if scrub_pii and self._pii_scrubber is None:
+            raise ValueError("PII redaction requires a configured scrubber")
         session_id = state.session_id
         entities = {k: v.value for k, v in state.entities.items()}
         pii_scrubbed = False

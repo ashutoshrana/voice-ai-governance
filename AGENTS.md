@@ -11,3 +11,6 @@
 | Custom key patterns expose sensitive values | Sensitive-key classification used the already-redacted label | Classify the original key before changing its output representation; exercise a custom label pattern |
 
 | Context publication disconnects a caller despite delivery failure | Adapter broadcast to participants, suppressed SDK errors, and treated packet submission as completed transfer | Require one selected recipient and valid session; propagate failures; leave connection, acknowledgment, and terminal state to native orchestration; the handoff contract negative control rejects packet-as-completion regressions |
+
+| Requested PII redaction silently returns an unsanitized handoff | Shared payload construction treated an absent scrubber as permission to bypass requested redaction | Reject requested redaction without a configured scrubber in the shared sync/async builder; preserve missing-session None and require an explicit opt-out for raw payloads |
+| Release workflow uses an advisory-affected or mutable publishing action | A dependency update in one repository left equivalent release workflows unchanged | Pin every publishing workflow to the verified patched action commit and validate each workflow before release |
