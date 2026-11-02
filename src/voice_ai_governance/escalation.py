@@ -16,6 +16,7 @@ __all__ = [
     "EscalationTrigger",
     "EscalationAction",
     "EscalationResult",
+    "EscalationThreshold",
     "ConfidenceGatedEscalationPolicy",
 ]
 

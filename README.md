@@ -49,6 +49,10 @@ Regex/key-based redaction can miss personal data outside its configured patterns
 
 ### Installation
 
+The base runtime supports Python 3.9+. Development and tests (`[dev]`) require
+Python 3.10+ with patched `pytest>=9.0.3`. Python 3.9 CI runs an installed-wheel
+core API smoke and compile check without development dependencies.
+
 ```bash
 pip install voice-ai-governance
 # With Redis support:
