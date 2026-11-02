@@ -49,6 +49,8 @@ Regex/key-based redaction can miss personal data outside its configured patterns
 
 ### Installation
 
+Use a maintained Python 3.11+ runtime for production. Python 3.9/3.10 core compatibility remains available as legacy support; development and optional SDK floors are separate.
+
 The base runtime supports Python 3.9+. Development and tests (`[dev]`) require
 Python 3.10+ with patched `pytest>=9.0.3`. Python 3.9 CI runs an installed-wheel
 core API smoke and compile check without development dependencies.

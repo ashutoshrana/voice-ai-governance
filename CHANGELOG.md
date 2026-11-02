@@ -6,6 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.1] — Unreleased
+
+- Prepare the supported-runtime/release-verification hardening patch; no voice, redaction, consent or telephony behavior changes.
+- Recommend a maintained Python 3.11+ production runtime; retain legacy Python 3.9 core compatibility and Python 3.10+ development tooling.
+
 ## [0.5.0] — Unreleased
 
 - Development/test tooling now requires Python 3.10+ and patched `pytest>=9.0.3`; the dependency-free base runtime still supports Python 3.9. CI checks Python 3.9 through an isolated installed-wheel smoke and compile check without development dependencies.
