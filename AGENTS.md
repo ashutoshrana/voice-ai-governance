@@ -14,3 +14,4 @@
 
 | Requested PII redaction silently returns an unsanitized handoff | Shared payload construction treated an absent scrubber as permission to bypass requested redaction | Reject requested redaction without a configured scrubber in the shared sync/async builder; preserve missing-session None and require an explicit opt-out for raw payloads |
 | Release workflow uses an advisory-affected or mutable publishing action | A dependency update in one repository left equivalent release workflows unchanged | Pin every publishing workflow to the verified patched action commit and validate each workflow before release |
+| Python 3.9 CI fails before tests start | ubuntu-latest moved to Ubuntu 26.04 without Python 3.9 builds | Pin the supported Python test matrix to Ubuntu 24.04 and verify the official Python version manifest |
