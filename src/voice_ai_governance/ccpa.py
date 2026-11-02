@@ -12,7 +12,7 @@ Regulatory scope:
 
 Install
 -------
-    pip install voice-ai-governance
+    pip install 'voice-ai-governance>=0.5.1'
 
 Usage
 -----

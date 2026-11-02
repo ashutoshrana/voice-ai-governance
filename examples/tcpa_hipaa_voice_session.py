@@ -5,7 +5,7 @@ Demonstrates TCPA consent checking, HIPAA PII scrubbing,
 and warm transfer state preservation.
 
 Install:
-    pip install voice-ai-governance
+    pip install 'voice-ai-governance>=0.5.1'
 
 Usage:
     python examples/tcpa_hipaa_voice_session.py

@@ -1,9 +1,8 @@
 """
-LiveKit Agents v1.6+ warm transfer adapter for voice-ai-governance.
+LiveKit Agents v1.8.7+ warm transfer adapter for voice-ai-governance.
 
 Integrates TCPA consent gating, HIPAA compliance enforcement, PII scrubbing,
-and structured warm transfer handoff into LiveKit Agents VoicePipelineAgent
-deployments.
+and structured warm transfer handoff into caller-managed LiveKit agent deployments.
 
 Regulatory citations:
   - TCPA: 47 U.S.C. § 227 (consent required before autodialed/prerecorded calls)

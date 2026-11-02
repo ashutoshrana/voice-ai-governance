@@ -7,7 +7,7 @@ transfers through Amazon Connect queues.
 
 Installation
 ------------
-    pip install voice-ai-governance boto3
+    pip install "voice-ai-governance[amazon_connect]>=0.5.1"
 
 Usage
 -----
