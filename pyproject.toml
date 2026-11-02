@@ -41,7 +41,7 @@ amazon_connect = ["boto3>=1.26"]
 all = ["voice-ai-governance[redis,pipecat,amazon_connect]"]
 dev = [
     "redis>=4.2",
-    "pytest>=7.0",
+    "pytest>=9.0.3",
     "pytest-asyncio>=0.21",
     "pytest-cov>=4.0",
 ]

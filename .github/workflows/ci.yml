@@ -15,10 +15,13 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -50,13 +53,37 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
+  runtime-39:
+    name: Python 3.9 installed-wheel runtime
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install build && python -m build --wheel
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - name: Check base runtime without development dependencies
+        run: |
+          python -m venv .runtime39
+          .runtime39/bin/python -m pip install --no-deps dist/*.whl
+          .runtime39/bin/python -I scripts/smoke_runtime.py
+
   package:
-    needs: test
+    needs: [test, runtime-39]
     runs-on: ubuntu-latest
     outputs:
       artifact-id: ${{ steps.upload.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -75,18 +102,32 @@ jobs:
           python -m venv .wheelcheck
           .wheelcheck/bin/python -m pip install --no-deps dist/*.whl
           .wheelcheck/bin/python -I -c 'import voice_ai_governance as p; from importlib.metadata import version; assert p.__version__ == version("voice-ai-governance"); assert callable(p.WarmTransferStateManager); assert callable(p.PIIScrubber)'
-      - uses: actions/upload-artifact@v7
+      - name: Verify installed sdist in isolation
+        run: |
+          python -m venv .sdistcheck
+          .sdistcheck/bin/python -m pip install --no-deps dist/*.tar.gz
+          .sdistcheck/bin/python -I -c 'import voice_ai_governance as p; from importlib.metadata import version; assert p.__version__ == version("voice-ai-governance"); assert callable(p.WarmTransferStateManager); assert callable(p.PIIScrubber)'
+      - name: Check installed dependencies and record artifact hashes
+        run: |
+          .wheelcheck/bin/python -m pip check
+          .sdistcheck/bin/python -m pip check
+          sha256sum dist/* > SHA256SUMS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         id: upload
         with:
           name: python-release-dist
-          path: dist/
+          path: |
+            dist/
+            SHA256SUMS
           if-no-files-found: error
       - name: Verify uploaded artifact round trip without publishing
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: python-release-dist
           path: roundtrip-dist/
-      - run: python scripts/verify_release.py roundtrip-dist/
+      - run: |
+          (cd roundtrip-dist && sha256sum --check SHA256SUMS)
+          python scripts/verify_release.py roundtrip-dist/dist/
 
   publish:
     needs: [test, package]
@@ -103,8 +144,10 @@ jobs:
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           artifact-ids: ${{ needs.package.outputs.artifact-id }}
-          path: dist/
+          path: .
           merge-multiple: true
+      - name: Verify unchanged artifact bytes
+        run: sha256sum --check SHA256SUMS
       - name: Publish distributions and attestations with Trusted Publishing
         uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:

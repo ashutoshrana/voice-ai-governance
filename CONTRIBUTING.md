@@ -18,6 +18,10 @@ HIPAA, FERPA, and EU AI Act requirements for Pipecat, Twilio, and LiveKit.
 
 ## 1. Development setup
 
+Use Python 3.10 or newer for the `[dev]` extra and pytest suite. The base library
+still supports Python 3.9; its CI lane installs the base wheel without development
+dependencies and checks core behavior plus package compilation.
+
 ```bash
 git clone https://github.com/ashutoshrana/voice-ai-governance.git
 cd voice-ai-governance
@@ -30,7 +34,7 @@ pip install -e ".[dev]"
 pytest tests/ -v
 ```
 
-The `[dev]` extra installs `pytest`, `pytest-cov`, `ruff`, and `mypy`.
+The `[dev]` extra installs patched `pytest>=9.0.3`, `pytest-asyncio`, and `pytest-cov`, plus Redis support.
 Platform dependencies (Pipecat, Twilio, LiveKit, Redis) use lazy imports
 and are not required for the core test suite.
 

@@ -14,6 +14,7 @@ from voice_ai_governance.escalation import (
     EscalationTrigger,
     EscalationAction,
     EscalationResult,
+    EscalationThreshold,
 )
 from voice_ai_governance.state import (
     WarmTransferStateManager,
@@ -56,6 +57,7 @@ __all__ = [
     "EscalationTrigger",
     "EscalationAction",
     "EscalationResult",
+    "EscalationThreshold",
     # State management
     "WarmTransferStateManager",
     "ConversationState",

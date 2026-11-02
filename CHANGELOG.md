@@ -8,6 +8,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.5.0] — Unreleased
 
+- Development/test tooling now requires Python 3.10+ and patched `pytest>=9.0.3`; the dependency-free base runtime still supports Python 3.9. CI checks Python 3.9 through an isolated installed-wheel smoke and compile check without development dependencies.
+
 - Fail closed when handoff payload redaction is requested without a configured scrubber in both sync and async managers.
 - Migration: configure `PIIScrubber` or explicitly pass `scrub_pii=False` when raw payloads are intended. Missing sessions continue to return `None`.
 
