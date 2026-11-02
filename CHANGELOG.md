@@ -8,6 +8,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.5.1] — Unreleased
 
+- Raise Redis, LiveKit/OpenTelemetry and boto3/urllib3 installer floors after minimum/current graph qualification. Remove the unqualified legacy Pipecat installer from metadata and `all`; retain its caller-wired helper API. No telephony behavior changes.
 - Prepare the supported-runtime/release-verification hardening patch; no voice, redaction, consent or telephony behavior changes.
 - Recommend a maintained Python 3.11+ production runtime; retain legacy Python 3.9 core compatibility and Python 3.10+ development tooling.
 
