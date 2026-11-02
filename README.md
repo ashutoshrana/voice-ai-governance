@@ -14,7 +14,7 @@ Warm transfer state management, confidence-gated escalation, PII scrubbing, TCPA
 
 ## What it does and when to use it
 
-This Python library helps voice and messaging application developers carry conversation context into a human handoff, redact configured personal-data patterns, and apply consent and escalation checks. Use it when your application already handles calls or messages and needs reusable checks around those events. The current published version is [0.3.1](https://pypi.org/project/voice-ai-governance/0.3.1/).
+This Python library helps voice and messaging application developers carry conversation context into a human handoff, redact configured personal-data patterns, and apply consent and escalation checks. Use it when your application already handles calls or messages and needs reusable checks around those events. Find published releases on [PyPI](https://pypi.org/project/voice-ai-governance/) and changes in the [changelog](CHANGELOG.md).
 
 For example, a support caller may need a human after an uncertain answer. Your application records turns through the state manager, evaluates whether to escalate, builds a scrubbed handoff payload, and passes it to its contact-center integration. The receiving agent gets context without requiring the caller to repeat the entire conversation.
 
