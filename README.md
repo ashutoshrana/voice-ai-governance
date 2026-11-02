@@ -131,7 +131,7 @@ print(payload.caller_summary)
 # "Caller interaction (3 turns). Intent: billing_inquiry. Sentiment: positive..."
 ```
 
-Requested redaction raises `ValueError` if no scrubber is configured; this applies
+Since 0.5.0, requested redaction raises `ValueError` if no scrubber is configured; this applies
 to both sync and async managers. Missing sessions still return `None`. An explicit
 `scrub_pii=False` bypasses redaction. Pattern matching cannot guarantee removal of
 all sensitive data; configure domain patterns and review outgoing payloads.
