@@ -95,7 +95,8 @@ def publication(monkeypatch):
     from voice_ai_governance.state import WarmTransferStateManager
 
     monkeypatch.setattr(livekit, '_LIVEKIT_AVAILABLE', True)
-    manager = WarmTransferStateManager()
+    from voice_ai_governance.pii import PIIScrubber
+    manager = WarmTransferStateManager(pii_scrubber=PIIScrubber())
     session_id = manager.create_session()
     room = SimpleNamespace(
         remote_participants={'reviewer': object(), 'bystander': object()},

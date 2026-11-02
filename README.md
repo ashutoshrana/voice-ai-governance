@@ -104,9 +104,10 @@ if result.triggered:
 
 ```python
 from voice_ai_governance import WarmTransferStateManager
+from voice_ai_governance.pii import PIIScrubber
 
 # In-memory (testing) — swap for Redis in production
-manager = WarmTransferStateManager()
+manager = WarmTransferStateManager(pii_scrubber=PIIScrubber())
 
 # Create session at call start
 session_id = manager.create_session(call_sid="CA1234567890")
@@ -124,20 +125,26 @@ manager.update_state(
     ),
 )
 
-# Build handoff payload — PII scrubbed by default
+# Build handoff payload — configured pattern redaction requested by default
 payload = manager.build_handoff_payload(session_id, reason="low_confidence")
 print(payload.caller_summary)
 # "Caller interaction (3 turns). Intent: billing_inquiry. Sentiment: positive..."
 ```
+
+Since 0.5.0, requested redaction raises `ValueError` if no scrubber is configured; this applies
+to both sync and async managers. Missing sessions still return `None`. An explicit
+`scrub_pii=False` bypasses redaction. Pattern matching cannot guarantee removal of
+all sensitive data; configure domain patterns and review outgoing payloads.
 
 ### Twilio ConversationRelay Warm Transfer
 
 ```python
 import json
 from voice_ai_governance import WarmTransferStateManager
+from voice_ai_governance.pii import PIIScrubber
 from voice_ai_governance.adapters.twilio import TwilioWarmTransferAdapter
 
-manager = WarmTransferStateManager(redis_client=redis_client)
+manager = WarmTransferStateManager(redis_client=redis_client, pii_scrubber=PIIScrubber())
 adapter = TwilioWarmTransferAdapter(
     state_manager=manager,
     queue_sid="WQ_YOUR_QUEUE_SID",
@@ -251,9 +258,10 @@ Run the [no-credentials handoff contract demo](docs/HANDOFF_CONTRACT.md) to dist
 ```python
 from voice_ai_governance.adapters.livekit import LiveKitWarmTransferAdapter
 from voice_ai_governance.state import WarmTransferStateManager
+from voice_ai_governance.pii import PIIScrubber
 
 adapter = LiveKitWarmTransferAdapter(
-    state_manager=WarmTransferStateManager(redis_client=redis_client),
+    state_manager=WarmTransferStateManager(redis_client=redis_client, pii_scrubber=PIIScrubber()),
 )
 
 # In your LiveKit Agents entrypoint:
@@ -290,11 +298,12 @@ application acknowledgments remain the host application's responsibility.
 ```python
 from voice_ai_governance.adapters.amazon_connect import AmazonConnectAdapter
 from voice_ai_governance.state import WarmTransferStateManager
+from voice_ai_governance.pii import PIIScrubber
 
 adapter = AmazonConnectAdapter(
     instance_id="arn:aws:connect:us-east-1:123456789012:instance/abc",
     region_name="us-east-1",
-    state_manager=WarmTransferStateManager(),
+    state_manager=WarmTransferStateManager(pii_scrubber=PIIScrubber()),
 )
 
 # Build Amazon Connect contact attributes payload (TCPA-gated, HIPAA-scrubbed)

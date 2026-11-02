@@ -1,5 +1,7 @@
 """Tests for warm transfer state management."""
 
+from voice_ai_governance.pii import PIIScrubber
+
 import pytest
 from voice_ai_governance.state import (
     ConversationState,
@@ -87,7 +89,7 @@ class TestWarmTransferStateManager:
         assert state.primary_intent == "greeting"
 
     def test_build_handoff_payload(self):
-        manager = WarmTransferStateManager()
+        manager = WarmTransferStateManager(pii_scrubber=PIIScrubber())
         session_id = manager.create_session(call_sid="CA100")
         manager.update_state(
             session_id,
@@ -117,7 +119,7 @@ class TestWarmTransferStateManager:
         assert state is None
 
     def test_handoff_payload_twilio_format(self):
-        manager = WarmTransferStateManager()
+        manager = WarmTransferStateManager(pii_scrubber=PIIScrubber())
         session_id = manager.create_session(call_sid="CA200")
         manager.update_state(
             session_id,

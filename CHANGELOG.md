@@ -6,6 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.0] — Unreleased
+
+- Fail closed when handoff payload redaction is requested without a configured scrubber in both sync and async managers.
+- Migration: configure `PIIScrubber` or explicitly pass `scrub_pii=False` when raw payloads are intended. Missing sessions continue to return `None`.
+
 ## [0.4.0] — Unreleased
 
 - Require an explicit present recipient for LiveKit handoff-context publication.

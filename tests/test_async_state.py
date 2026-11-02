@@ -39,7 +39,8 @@ async def test_concurrent_updates_are_safe():
 
 @pytest.mark.asyncio
 async def test_build_handoff_payload():
-    mgr = AsyncWarmTransferStateManager()
+    from voice_ai_governance.pii import PIIScrubber
+    mgr = AsyncWarmTransferStateManager(pii_scrubber=PIIScrubber())
     sid = await mgr.create_session(call_sid="CA002")
     await mgr.update_state(sid, lambda s: s.add_turn(
         "user", "I want to enroll", intent="enrollment", confidence=0.85,
