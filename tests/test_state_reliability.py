@@ -51,7 +51,7 @@ async def test_async_cross_manager_transactions_and_terminal_retry(redis_socket)
         assert (await a.get_state(sid)).status == TransferStatus.COMPLETED
         assert not await b.initiate_transfer(sid)
     finally:
-        await client.aclose()
+        await (getattr(client, "aclose", None) or client.close)()
 
 def test_sync_cross_manager_transactions(redis_socket):
     import redis

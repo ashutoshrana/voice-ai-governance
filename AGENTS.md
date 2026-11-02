@@ -23,3 +23,5 @@
 | Release roundtrip accepts substituted files with matching version metadata | Identity checks omit exact distribution bytes | Verify the retained artifact checksum manifest after download and again before OIDC publication |
 
 | README describes an available release as unpublished or labels an older release current | A release-time version snapshot was kept as permanent project status prose | Link to the stable PyPI project and changelog instead of embedding current-release assertions; preserve historical published artifact text |
+| A legacy optional installer cannot resolve a patched dependency graph | Older SDK constraints cap affected dependencies below their patched release | Remove the unqualified installer and aggregate entry, retain caller-owned helper APIs, and document the native migration boundary |
+| Redis minimum qualification fails during test teardown | Redis 4.x exposes async close while current Redis exposes aclose | Close the fixture through the available API and run the real Redis suite on both qualified graphs |

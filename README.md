@@ -40,7 +40,7 @@ Regex/key-based redaction can miss personal data outside its configured patterns
 - **Compliance enforcement** — HIPAA, FERPA, EU AI Act Article 13/14 runtime policy checking
 - **Redis-gated state** — atomic state management for concurrent telephony I/O (prevents race conditions)
 - **Twilio ConversationRelay** — native handoffData payload builder for Flex TaskRouter
-- **Pipecat adapter** — drop-in middleware for Pipecat frame processors
+- **Pipecat adapter** — caller-wired frame helper; its legacy native installer is quarantined
 - **No required dependencies** — core library has zero required dependencies; Redis and Pipecat are optional
 
 ---
@@ -49,17 +49,35 @@ Regex/key-based redaction can miss personal data outside its configured patterns
 
 ### Installation
 
+Installer examples keep the security-qualified package floor. If that release is not yet available on PyPI, use the reviewed checkout or wheel; do not drop the floor to make pip select an older distribution.
+
+Use a maintained Python 3.11+ runtime for production. Python 3.9/3.10 core compatibility remains available as legacy support; development and optional SDK floors are separate.
+
 The base runtime supports Python 3.9+. Development and tests (`[dev]`) require
 Python 3.10+ with patched `pytest>=9.0.3`. Python 3.9 CI runs an installed-wheel
 core API smoke and compile check without development dependencies.
 
 ```bash
-pip install voice-ai-governance
+pip install 'voice-ai-governance>=0.5.1'
 # With Redis support:
-pip install "voice-ai-governance[redis]"
-# With Pipecat integration:
-pip install "voice-ai-governance[pipecat]"
+pip install "voice-ai-governance[redis]>=0.5.1"
+# With retained SDK installers:
+pip install "voice-ai-governance[all]>=0.5.1"
 ```
+
+### Security-qualified installers
+
+The 2026-11-02 qualification resolves/audits minimum and current graphs on Python 3.11 and current graphs on Python 3.14. Native tests are separate from resolution: 3.14 core tests do not qualify every telephony SDK there. Keep a reviewed dependency lock and rescan it for deployment.
+
+| Extra | Qualified dependency floor | Effective dependency Python floor |
+|---|---|---|
+| `redis` | redis 4.5.4 | project core 3.9; maintained 3.11+ recommended |
+| `livekit` | livekit-agents 1.8.7 `<2`, opentelemetry-api 1.45.1 | 3.10; SDK requires `<3.15` |
+| `amazon_connect` | boto3 1.34.63, urllib3 2.8.0 `<3` | 3.10 |
+| `all` | the three retained runtime installers above | 3.10; LiveKit requires `<3.15` |
+| `dev` | patched pytest 9.0.3, pytest-asyncio 1.3.0 and listed tools | 3.10 |
+
+The old `pipecat` install extra is removed from metadata and `all`. Its legacy 0.x branch constrains Pillow below the patched 13.x floor, while older Pipecat releases also have a direct critical advisory. The helper API and source examples remain for caller-managed pipelines, but no Pipecat 1.x native installation/migration is claimed by this release. Do not treat pip's warning for an unknown legacy extra as a supported SDK install. Redis, LiveKit and boto3 floors also prevent the known affected minimum graphs; the core library still has no required dependencies. This dated qualification is not a promise for all historical or future dependency combinations.
 
 ### Confidence-Gated Escalation
 
@@ -282,7 +300,7 @@ async def entrypoint(ctx: JobContext):
     # Separately use native provider orchestration to connect the human.
 ```
 
-Requires: `pip install "voice-ai-governance[livekit]"` (installs `livekit-agents>=1.6.0`).
+Requires: `pip install "voice-ai-governance[livekit]>=0.5.1"` (installs LiveKit Agents 1.8.7+ `<2` and patched OpenTelemetry API 1.45.1+).
 
 **Migration:** `transfer()` and `on_confidence_low()` now require a keyword-only
 `recipient_identity`. Your application must authorize that participant and register
@@ -322,7 +340,7 @@ payload = adapter.build_transfer_payload(
 turns = adapter.extract_transcript(contact_id)
 ```
 
-Requires: `pip install "voice-ai-governance[amazon_connect]"` (installs boto3).
+Requires: `pip install "voice-ai-governance[amazon_connect]>=0.5.1"` (installs boto3).
 
 ### CCPA Consumer Rights Enforcement
 
@@ -417,10 +435,10 @@ if result.is_opt_out:
 
 | Platform | Adapter | Status |
 |---------|---------|--------|
-| Pipecat (pipecat-ai) | `PipecatGovernanceAdapter` | ✅ Supported |
+| Pipecat (pipecat-ai) | `PipecatGovernanceAdapter` | Caller-managed helper only; native install extra quarantined |
 | Twilio ConversationRelay | `TwilioWarmTransferAdapter` | ✅ Supported |
 | Twilio Programmable Messaging | `TwilioSMSAdapter`, `PostCallSMSBuilder` | ✅ Supported |
-| LiveKit Agents v1.6+ | `LiveKitWarmTransferAdapter` | ✅ Supported |
+| LiveKit Agents 1.8.7+ `<2` | `LiveKitWarmTransferAdapter` | Targeted context publication; native human transfer remains application-owned |
 | Amazon Connect + Contact Lens | `AmazonConnectAdapter` | ✅ Supported |
 | Cisco Webex CC | Coming in v0.4 | 🔜 Planned |
 | NICE CXone | Coming in v0.4 | 🔜 Planned |
