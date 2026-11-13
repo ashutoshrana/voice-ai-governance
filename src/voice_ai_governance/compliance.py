@@ -236,16 +236,18 @@ class FERPAVoicePolicy(CompliancePolicy):
 
 class EUAIActVoicePolicy(CompliancePolicy):
     """
-    EU AI Act Article 14 (Human Oversight) and Article 13 (Transparency)
+    EU AI Act Article 14 (Human Oversight) and Article 50(1) (AI-interaction disclosure)
     compliance enforcement for voice AI systems.
 
     Enforces:
     - Human oversight capability (Article 14.3): ability to intervene, correct, or override
-    - Transparency disclosure (Article 13.1): AI identity disclosure to users
+    - Transparency disclosure (Article 50(1)): AI identity disclosure to users
     - Logging and monitoring requirements (Article 12)
     - Annex III high-risk system obligations for employment/education/customer service contexts
 
-    Note: Full obligations apply August 2, 2026.
+    These configurable checks use caller-supplied state, not an independent
+    legal applicability determination or compliance certification. Article 50(1)
+    includes exceptions; deployment obligations and timelines require review.
     """
 
     def __init__(
@@ -266,12 +268,14 @@ class EUAIActVoicePolicy(CompliancePolicy):
         violations = []
         required_actions = []
 
-        # Check 1: AI identity not disclosed to user (Article 13.1)
+        # Check 1: AI identity not disclosed to user (Article 50(1))
         if self.require_ai_disclosure and not context.get("ai_identity_disclosed", False):
             violations.append(ComplianceViolation(
                 regulation="EU AI Act",
+                # Historical identifier retained for consumer compatibility.
+                # The applicable disclosure reference is Article 50(1).
                 rule_id="EUAIA-13.1-01",
-                description="AI system has not disclosed its AI nature to the user (Article 13.1)",
+                description="AI system has not disclosed its AI nature to the user (Article 50(1))",
                 severity=ViolationSeverity.VIOLATION,
                 recommended_action="Disclose AI identity at call start: 'You are speaking with an AI assistant'",
             ))

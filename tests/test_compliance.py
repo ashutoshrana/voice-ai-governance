@@ -128,3 +128,10 @@ class TestEUAIActVoicePolicy:
         )
         result = policy.check({"human_override_available": True})
         assert result.passed
+
+
+def test_ai_disclosure_citation_preserves_legacy_rule_id():
+    result = EUAIActVoicePolicy().check({"ai_identity_disclosed": False})
+    violation = next(v for v in result.violations if v.rule_id == "EUAIA-13.1-01")
+    assert "Article 50(1)" in violation.description
+    assert "Article 13.1" not in violation.description

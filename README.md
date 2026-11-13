@@ -37,7 +37,7 @@ Regex/key-based redaction can miss personal data outside its configured patterns
 - **A2P 10DLC validation** — TCR campaign config validation, AI-generated SMS disclosure enforcement, MIXED type warnings
 - **Omnichannel consent bridging** — voice consent records propagate to SMS channel without second opt-in
 - **Post-call SMS summaries** — PHI-stripped case summary sent to human agent after escalation
-- **Compliance enforcement** — HIPAA, FERPA, EU AI Act Article 13/14 runtime policy checking
+- **Compliance enforcement** — HIPAA, FERPA, EU AI Act Articles 50(1)/14 runtime policy checking
 - **Redis-gated state** — atomic state management for concurrent telephony I/O (prevents race conditions)
 - **Twilio ConversationRelay** — native handoffData payload builder for Flex TaskRouter
 - **Pipecat adapter** — caller-wired frame helper; its legacy native installer is quarantined
@@ -209,13 +209,13 @@ if not result.passed:
     # Trigger escalation or restrict response
 ```
 
-### EU AI Act Article 13/14 Enforcement
+### EU AI Act Articles 50(1)/14 Enforcement
 
 ```python
 from voice_ai_governance import EUAIActVoicePolicy
 
 policy = EUAIActVoicePolicy(
-    require_ai_disclosure=True,   # Article 13.1
+    require_ai_disclosure=True,   # Article 50(1)
     is_high_risk_context=True,    # Annex III: education/employment context
     require_human_override_capability=True,  # Article 14.3
 )
@@ -423,7 +423,7 @@ if result.is_opt_out:
 | FCC 2024 TCPA Order | One-to-one consent rule; per-campaign consent granularity |
 | CTIA Best Practices | STOP/HELP/UNSUBSCRIBE/CANCEL/END/QUIT keyword interception |
 | A2P 10DLC (TCR) | Campaign config validation, AI-generated disclosure, MIXED type throughput warnings |
-| EU AI Act Article 13.1 | AI identity disclosure |
+| EU AI Act Article 50(1) | AI identity disclosure |
 | EU AI Act Article 14.3 | Human oversight capability (full obligations August 2026) |
 | EU AI Act Article 12 | Logging and monitoring |
 | OWASP ASI-02 | Tool misuse prevention via compliance-gated execution |

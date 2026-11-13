@@ -3,7 +3,7 @@
 ## Current state (v0.2.0)
 
 Core voice compliance enforcement is implemented for Pipecat and Twilio,
-covering TCPA, HIPAA, FERPA, and EU AI Act Articles 13–14. 79 tests passing.
+covering TCPA, HIPAA, FERPA, and EU AI Act Article 50(1) disclosure and Article 14 oversight. 79 tests passing.
 
 ---
 

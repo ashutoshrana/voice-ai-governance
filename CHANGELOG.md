@@ -6,6 +6,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+- Correct AI-interaction disclosure references to EU AI Act Article 50(1) in documentation and violation text. Preserve the historical `EUAIA-13.1-01` rule identifier for compatibility; policy decisions are unchanged. Historical release descriptions below are retained.
+- Distinguish download activity from independently verified adoption and clarify the scope of configurable compliance checks.
+
 ## [0.5.1] — Unreleased
 
 - Raise Redis, LiveKit/OpenTelemetry and boto3/urllib3 installer floors after minimum/current graph qualification. Remove the unqualified legacy Pipecat installer from metadata and `all`; retain its caller-wired helper API. No telephony behavior changes.
