@@ -166,11 +166,12 @@ class TwilioSMSAdapter:
 
 class PostCallSMSBuilder:
     """
-    Builds a HIPAA/FERPA-compliant post-call case summary SMS.
+    Builds a post-call summary with optional pattern-based redaction.
 
     After a voice call escalation, sends a plain-text summary to the
-    human agent or patient/student — with all PHI stripped from the body
-    and replaced with a secure tokenized portal link.
+    human agent or patient/student. Pattern matching cannot detect all PHI;
+    this builder does not certify HIPAA/FERPA compliance. The caller must
+    secure portal URLs and authorize recipients. No access token is generated.
 
     Example::
 

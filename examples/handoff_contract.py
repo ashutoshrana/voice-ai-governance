@@ -83,6 +83,8 @@ async def run_scenario(name):
         raise ValueError('Unknown fixture scenario')
     manager = WarmTransferStateManager(pii_scrubber=PIIScrubber())
     session_id = manager.create_session()
+    # Synthetic fixture attestation, not production contract evidence.
+    manager.update_state(session_id, lambda state: state.platform_metadata.update(baa_verified=True))
     fixture = ReceiptFixture(manager, session_id)
     failure = (RuntimeError('synthetic publication failure') if name == 'publication_failure'
                else asyncio.CancelledError() if name == 'cancellation' else None)

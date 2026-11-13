@@ -99,7 +99,8 @@ class LiveKitWarmTransferAdapter:
         state_manager: WarmTransferStateManager instance. If None, a stateless
             in-process instance is created (suitable for single-server deployments).
         hipaa_policy: HIPAAVoicePolicy instance. Defaults to policy with PHI
-            scrubbing enabled on transfer.
+            scrubbing and BAA-attestation checks enabled on transfer. Supply trusted
+            state.platform_metadata["baa_verified"]; inspect the returned audit.
 
     Example:
         adapter = LiveKitWarmTransferAdapter(
@@ -221,9 +222,9 @@ class LiveKitWarmTransferAdapter:
             session_id: Conversation session identifier previously registered
                 with the state manager.
             reason: Transfer reason code forwarded to the contact center.
-            scrub_pii: When True (default), PIIScrubber runs over entity values
-                before the payload leaves the adapter. Required for HIPAA 45 CFR
-                § 164.514 minimum necessary standard.
+            scrub_pii: When True (default), PIIScrubber applies configured
+                patterns to the payload. This is not a complete de-identification
+                or minimum-necessary determination.
 
         Returns:
             Dict with ``_meta``, ``session_id``, ``reason``, ``hipaa_audit``,
@@ -254,7 +255,10 @@ class LiveKitWarmTransferAdapter:
                 "state_available": False,
             }
 
+        state = self._state_manager.get_state(session_id)
         hipaa_context = {
+            "baa_verified": state.platform_metadata.get("baa_verified") if state else None,
+            "recording_active": state.platform_metadata.get("recording_active", False) if state else False,
             "transfer_initiated": True,
             "phi_scrubbed": handoff.pii_scrubbed,
             "entities": handoff.collected_entities,
@@ -307,6 +311,13 @@ class LiveKitWarmTransferAdapter:
             raise ValueError("An active or escalating registered session is required")
         return session_id
 
+    @staticmethod
+    def _assert_hipaa_publication(payload: dict[str, Any]) -> None:
+        """Reject absent or failing policy evidence before data leaves the room."""
+        audit = payload.get("hipaa_audit")
+        if not isinstance(audit, dict) or audit.get("passed") is not True:
+            raise RuntimeError("HIPAA policy check did not pass; handoff context was not published")
+
     async def transfer(
         self,
         ctx: Any,
@@ -320,11 +331,13 @@ class LiveKitWarmTransferAdapter:
         transfer or proof of receipt. The application must authorize the recipient
         and orchestrate the human connection through the provider's native APIs.
         This method never disconnects the room or marks the session transferred.
+        A missing/failing HIPAA decision raises RuntimeError before publication.
         Publication errors and cancellation propagate to the caller. A recipient
         leaving after validation remains a delivery risk requiring application ACKs.
         """
         session_id = self._publication_session(ctx, recipient_identity)
         payload = self.build_transfer_payload(session_id, reason=reason, scrub_pii=True)
+        self._assert_hipaa_publication(payload)
         await _publish_transfer_data(ctx, payload, recipient_identity)
         logger.info("Handoff context publication submitted (session=%s)", session_id)
 
@@ -347,6 +360,7 @@ class LiveKitWarmTransferAdapter:
         Invalid destinations, consent, or sessions are rejected before state updates.
         """
         session_id = self._publication_session(ctx, recipient_identity)
+        self._assert_hipaa_publication(self.build_transfer_payload(session_id))
         self._state_manager.update_state(
             session_id,
             lambda state: _set_escalation_fields(state, confidence_score, threshold),

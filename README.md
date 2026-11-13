@@ -178,6 +178,9 @@ await websocket.send_text(json.dumps(message))
 # Sends: {"type": "end", "handoffData": {...contextual data...}}
 ```
 
+See [policy semantics and migration](docs/POLICY_SEMANTICS.md) and the
+[source register](docs/REGULATORY_SOURCES.md) before configuring legal policies.
+
 ### HIPAA + FERPA Compliance Enforcement
 
 ```python
@@ -200,6 +203,7 @@ adapter = PipecatGovernanceAdapter(
 context = {
     "entities": {"student_id": "STU123", "gpa": "3.8"},
     "caller_identity_verified": False,
+    "baa_verified": True,  # only after checking the applicable agreement
 }
 result = adapter.check_compliance(context)
 
@@ -216,7 +220,7 @@ from voice_ai_governance import EUAIActVoicePolicy
 
 policy = EUAIActVoicePolicy(
     require_ai_disclosure=True,   # Article 50(1)
-    is_high_risk_context=True,    # Annex III: education/employment context
+    is_high_risk_context=True,    # caller has assessed Article 6 / Annex III applicability
     require_human_override_capability=True,  # Article 14.3
 )
 
@@ -411,20 +415,20 @@ if result.is_opt_out:
 | Regulation | Coverage |
 |-----------|----------|
 | HIPAA §164.514 | PHI detection and scrubbing before transfer; URL parameter PHI redaction in SMS |
-| HIPAA §164.522 | Consent tracking for voice recording |
+| Configurable recording safeguard | Consent tracking; not a recording-consent mandate under HIPAA §164.522 |
 | FERPA §99.31 | Education record access restriction |
 | FERPA §99.37 | Directory information opt-out enforcement |
 | CCPA §1798.100 | Right to Know — detect and route consumer enquiries about collected data |
 | CCPA §1798.105 | Right to Delete — 45-day SLA tracking, inline deletion blocked, route to fulfilment |
 | CCPA §1798.120 | Right to Opt-Out — sale/sharing opt-out within 15 business days |
-| CPRA §1798.121 | Automated Decision-Making opt-out — halt AI decisions, route to human review |
+| 11 CCR §7221 | Detect ADMT opt-out requests and route for applicability/human review; scope and exceptions apply |
 | CCPA §1798.125 | Right to Non-Discrimination — service-level change on rights exercise prohibited |
 | TCPA 47 U.S.C. §227 | Quiet hours (8am–9pm), PEWC for AI marketing SMS, opt-out suppression |
-| FCC 2024 TCPA Order | One-to-one consent rule; per-campaign consent granularity |
+| Configurable consent policy | Per-campaign granularity; not the vacated FCC one-to-one consent rule |
 | CTIA Best Practices | STOP/HELP/UNSUBSCRIBE/CANCEL/END/QUIT keyword interception |
 | A2P 10DLC (TCR) | Campaign config validation, AI-generated disclosure, MIXED type throughput warnings |
 | EU AI Act Article 50(1) | AI identity disclosure |
-| EU AI Act Article 14.3 | Human oversight capability (full obligations August 2026) |
+| EU AI Act Article 14 | Caller-attested override availability for configured high-risk use; not full human-oversight compliance |
 | EU AI Act Article 12 | Logging and monitoring |
 | OWASP ASI-02 | Tool misuse prevention via compliance-gated execution |
 | OWASP ASI-09 | Human-agent trust exploitation prevention |

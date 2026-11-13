@@ -227,6 +227,7 @@ class AmazonConnectAdapter:
         self._assert_tcpa_consent(state.__dict__)
 
         hipaa_result = self._hipaa_policy.check({
+            "baa_verified": state.platform_metadata.get("baa_verified"),
             "transfer_initiated": True,
             "phi_scrubbed": scrub_pii,
             "entities": {k: v.value for k, v in state.entities.items()},

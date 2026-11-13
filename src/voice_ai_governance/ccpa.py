@@ -1,12 +1,12 @@
 """
-CCPA Consumer Rights and Opt-Out Enforcement for Voice AI Agents
+CCPA Consumer Request Detection and Routing for Voice AI Agents
 ================================================================
 Regulatory scope:
   Cal. Civil Code §§ 1798.100–1798.199 (CCPA / CPRA)
   §1798.100  — Right to Know
   §1798.105  — Right to Delete (45-day response window)
   §1798.120  — Right to Opt-Out of Sale/Sharing
-  §1798.121  — Automated Decision-Making Opt-Out (CPRA)
+  11 CCR §7221 — Opt-out of covered ADMT use (scope/exceptions apply)
   §1798.125  — Right to Non-Discrimination
   §1798.135  — Designated methods for submitting requests (toll-free / web form)
 
@@ -83,7 +83,7 @@ CCPA_TRIGGER_PHRASES: dict[str, str] = {
     "what information do you collect": "right_to_know",
     "what data have you collected": "right_to_know",
     "what personal information": "right_to_know",
-    # §1798.121 — Automated Decision-Making Opt-Out (CPRA)
+    # 11 CCR §7221 — covered ADMT opt-out; legacy rule ID retained
     "don't use my data for decisions": "opt_out_automated_decision",
     "opt out of automated": "opt_out_automated_decision",
     "stop automated decisions": "opt_out_automated_decision",
@@ -160,12 +160,14 @@ _RIGHT_METADATA: dict[str, dict[str, Any]] = {
         ),
     },
     "opt_out_automated_decision": {
+        # Compatibility identifier only; §1798.121 governs sensitive PI limits.
         "rule_id": "CPRA-121",
-        "citation": "Cal. Civil Code §1798.121 (CPRA)",
+        "citation": "11 CCR §7221 (ADMT opt-out; scope and exceptions apply)",
         "severity": ViolationSeverity.CRITICAL,
         "description": (
-            "Consumer opted out of automated decision-making that significantly "
-            "affects them. Processing must pause pending human review (CPRA §1798.121)."
+            "Consumer requested an ADMT opt-out. This conservative routing policy "
+            "pauses the workflow for applicability review under 11 CCR §7221; "
+            "it does not determine that a statutory violation occurred."
         ),
         "required_action": (
             "Halt any pending automated decision affecting this consumer. "
@@ -350,7 +352,10 @@ class CCPAVoicePolicy(CompliancePolicy):
             return None
 
         lower = transcript.lower()
-        for phrase, right_type in CCPA_TRIGGER_PHRASES.items():
+        # Prefer specific phrases over generic 'opt out'.
+        for phrase, right_type in sorted(
+            CCPA_TRIGGER_PHRASES.items(), key=lambda item: len(item[0]), reverse=True
+        ):
             if phrase in lower:
                 return right_type
 

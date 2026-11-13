@@ -135,3 +135,12 @@ class TestCCPARequestTracker:
         tracker.record_request("c1", "right_to_delete")
         pending = tracker.get_pending("c1")
         assert len(pending) >= 2
+
+
+def test_admt_specific_phrase_and_legacy_id_correct_citation():
+    result = CCPAVoicePolicy().check({"transcript": "I opt out of automated decisions"})
+    assert not result.passed
+    assert result.audit_log["right_detected"] == "opt_out_automated_decision"
+    assert result.violations[0].rule_id == "CPRA-121"
+    assert "7221" in result.audit_log["citation"]
+    assert "1798.121" not in result.audit_log["citation"]

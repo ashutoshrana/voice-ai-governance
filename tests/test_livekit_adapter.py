@@ -98,6 +98,8 @@ def publication(monkeypatch):
     from voice_ai_governance.pii import PIIScrubber
     manager = WarmTransferStateManager(pii_scrubber=PIIScrubber())
     session_id = manager.create_session()
+    # Synthetic fixture attestation, not production contract evidence.
+    manager.update_state(session_id, lambda state: state.platform_metadata.update(baa_verified=True))
     room = SimpleNamespace(
         remote_participants={'reviewer': object(), 'bystander': object()},
         local_participant=SimpleNamespace(publish_data=AsyncMock()),
@@ -211,3 +213,60 @@ async def test_context_required(publication):
     adapter, _, _, _ = publication
     with pytest.raises(ValueError):
         await adapter.transfer(None, recipient_identity='reviewer')
+
+
+@pytest.mark.parametrize("verified", [None, True, False, "true"])
+def test_baa_attestation_propagated(verified):
+    from types import SimpleNamespace
+    sm = MagicMock()
+    sm.get_state.return_value = SimpleNamespace(platform_metadata={"baa_verified": verified})
+    sm.build_handoff_payload.return_value = SimpleNamespace(
+        pii_scrubbed=True, collected_entities={}, consent_obtained=True,
+        to_dict=dict,
+    )
+    payload = LiveKitWarmTransferAdapter(state_manager=sm).build_transfer_payload("s")
+    assert payload["hipaa_audit"]["passed"] is (verified is True)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("method", ["transfer", "on_confidence_low"])
+@pytest.mark.parametrize("evidence", [None, False, "true"])
+async def test_baa_failure_blocks_publication_and_state_changes(publication, method, evidence):
+    adapter, manager, session_id, ctx = publication
+    manager.update_state(session_id, lambda state: state.platform_metadata.update(baa_verified=evidence))
+    before = manager.get_state(session_id).to_dict()
+    args = (ctx,) if method == "transfer" else (ctx, .2, .6)
+    with pytest.raises(RuntimeError, match="HIPAA policy check"):
+        await getattr(adapter, method)(*args, recipient_identity="reviewer")
+    ctx.room.local_participant.publish_data.assert_not_awaited()
+    ctx.room.disconnect.assert_not_awaited()
+    assert manager.get_state(session_id).to_dict() == before
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("audit", [None, False, "true", {}, {"passed": 1}, {"passed": "true"}])
+async def test_absent_audit_blocks_publication(publication, monkeypatch, audit):
+    adapter, _, _, ctx = publication
+    monkeypatch.setattr(adapter, "build_transfer_payload", lambda *a, **kw: {"hipaa_audit": audit})
+    with pytest.raises(RuntimeError, match="HIPAA policy check"):
+        await adapter.transfer(ctx, recipient_identity="reviewer")
+    ctx.room.local_participant.publish_data.assert_not_awaited()
+    ctx.room.disconnect.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("strict", [False, True])
+async def test_recording_policy_mode_controls_publication(publication, strict):
+    from voice_ai_governance.compliance import HIPAAVoicePolicy
+    adapter, manager, session_id, ctx = publication
+    adapter._hipaa_policy = HIPAAVoicePolicy(block_on_violation=strict)
+    manager.update_state(session_id, lambda state: state.platform_metadata.update(recording_active=True))
+    manager.update_state(session_id, lambda state: setattr(state, "consent_obtained", False))
+    if strict:
+        with pytest.raises(RuntimeError, match="HIPAA policy check"):
+            await adapter.transfer(ctx, recipient_identity="reviewer")
+        ctx.room.local_participant.publish_data.assert_not_awaited()
+    else:
+        await adapter.transfer(ctx, recipient_identity="reviewer")
+        ctx.room.local_participant.publish_data.assert_awaited_once()
+    ctx.room.disconnect.assert_not_awaited()

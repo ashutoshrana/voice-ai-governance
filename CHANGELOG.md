@@ -8,10 +8,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- LiveKit publication now rejects missing/failing HIPAA policy decisions with `RuntimeError`, without publishing or disconnecting. The confidence hook prechecks before escalation state updates. Migration: supply trusted BAA evidence to the default policy; see `docs/POLICY_SEMANTICS.md`.
+
+- Fix the previously unused BAA requirement: enabled policies now require literal `baa_verified=True`; missing or non-boolean evidence produces a critical failure. Applications must supply a verified attestation or explicitly disable the requirement after assessing applicability.
+- Fail closed on missing/non-boolean human-override evidence in configured high-risk EU policies. Honor the PHI-scrubbing option. Add keyword-only `block_on_violation` to HIPAA/EU policies; default advisory behavior for noncritical violations remains compatible.
+- Preserve legacy rule IDs while correcting recording-consent and ADMT references. Prefer specific ADMT phrases over generic opt-out matching. Document source dates, policy limits and adapter migration in `docs/POLICY_SEMANTICS.md` and `docs/REGULATORY_SOURCES.md`.
+- Correct vacated FCC one-to-one attribution and absolute SMS privacy claims. Synchronize citation metadata with the published 0.5.1 release; this work remains unreleased.
+
 - Correct AI-interaction disclosure references to EU AI Act Article 50(1) in documentation and violation text. Preserve the historical `EUAIA-13.1-01` rule identifier for compatibility; policy decisions are unchanged. Historical release descriptions below are retained.
 - Distinguish download activity from independently verified adoption and clarify the scope of configurable compliance checks.
 
-## [0.5.1] — Unreleased
+## [0.5.1] — 2026-11-02
 
 - Raise Redis, LiveKit/OpenTelemetry and boto3/urllib3 installer floors after minimum/current graph qualification. Remove the unqualified legacy Pipecat installer from metadata and `all`; retain its caller-wired helper API. No telephony behavior changes.
 - Prepare the supported-runtime/release-verification hardening patch; no voice, redaction, consent or telephony behavior changes.

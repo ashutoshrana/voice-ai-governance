@@ -85,3 +85,16 @@ class TestBuildTransferPayload:
         self.adapter._state_manager = sm
         with pytest.raises((TCPAConsentError, Exception)):
             self.adapter.build_transfer_payload("sess_no_consent", "contact_001")
+
+
+@pytest.mark.parametrize("verified", [None, True, False, "true"])
+def test_baa_attestation_propagated(verified):
+    from voice_ai_governance.compliance import HIPAAVoicePolicy
+    fixture = TestBuildTransferPayload()
+    fixture.setup_method()
+    fixture.adapter._hipaa_policy = HIPAAVoicePolicy()
+    state = fixture.adapter._state_manager.get_state.return_value
+    state.platform_metadata["baa_verified"] = verified
+    payload = fixture.adapter.build_transfer_payload("s", "c")
+    codes = payload["attributes"]["HIPAAViolations"]
+    assert ("HIPAA-164.502-BAA-01" in codes) is (verified is not True)

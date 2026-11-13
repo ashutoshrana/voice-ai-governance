@@ -5,8 +5,9 @@ title: "voice-ai-governance: Compliance Enforcement Middleware for Voice AI Pipe
 abstract: >
   Compliance enforcement middleware for voice and SMS AI pipelines handling
   warm transfer state management, PII scrubbing, confidence-gated escalation,
-  and regulatory enforcement across HIPAA, FERPA, TCPA, and EU AI Act requirements.
-  Supports Pipecat, Twilio ConversationRelay, and LiveKit deployments.
+  and configurable safeguards related to HIPAA, FERPA, TCPA, and the EU AI Act.
+  Includes framework adapter helpers; native qualification and integration
+  boundaries are documented in the README. Not a compliance certification.
 authors:
   - family-names: "Rana"
     given-names: "Ashutosh"
@@ -24,4 +25,5 @@ keywords:
   - pii-scrubbing
   - pipecat
   - twilio
-date-released: "2026-04-25"
+version: "0.5.1"
+date-released: "2026-11-02"

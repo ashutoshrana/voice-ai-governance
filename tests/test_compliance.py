@@ -12,7 +12,7 @@ from voice_ai_governance.compliance import (
 class TestHIPAAVoicePolicy:
     def test_no_violation_clean_context(self):
         policy = HIPAAVoicePolicy()
-        result = policy.check({"entities": {"topic": "billing"}})
+        result = policy.check({"baa_verified": True, "entities": {"topic": "billing"}})
         assert result.passed
 
     def test_critical_violation_phi_without_scrub(self):
@@ -31,6 +31,7 @@ class TestHIPAAVoicePolicy:
         result = policy.check({
             "transfer_initiated": True,
             "phi_scrubbed": True,
+            "baa_verified": True,
             "entities": {"topic": "medication"},
         })
         assert result.passed
@@ -50,6 +51,7 @@ class TestHIPAAVoicePolicy:
         result = policy.check({
             "recording_active": True,
             "consent_obtained": True,
+            "baa_verified": True,
         })
         assert result.passed
 
@@ -135,3 +137,56 @@ def test_ai_disclosure_citation_preserves_legacy_rule_id():
     violation = next(v for v in result.violations if v.rule_id == "EUAIA-13.1-01")
     assert "Article 50(1)" in violation.description
     assert "Article 13.1" not in violation.description
+
+
+@pytest.mark.parametrize("evidence", [None, False, "true", "false", 1])
+def test_baa_requirement_fails_closed(evidence):
+    result = HIPAAVoicePolicy().check({"baa_verified": evidence})
+    assert not result.passed
+    assert "verify_baa" in result.required_actions
+
+
+def test_baa_requirement_missing_and_explicit_opt_out():
+    assert not HIPAAVoicePolicy().check({}).passed
+    assert HIPAAVoicePolicy(require_baa_verification=False).check({}).passed
+    assert HIPAAVoicePolicy().check({"baa_verified": True}).passed
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_recording_warning_and_strict_modes(strict):
+    result = HIPAAVoicePolicy(block_on_violation=strict).check({
+        "baa_verified": True, "recording_active": True,
+    })
+    assert result.passed is (not strict)
+    assert result.violations[0].rule_id == "HIPAA-164.522-01"
+    assert "safeguard" in result.violations[0].description
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_disclosure_warning_and_strict_modes(strict):
+    result = EUAIActVoicePolicy(block_on_violation=strict).check({})
+    assert result.passed is (not strict)
+    assert "disclose_ai_identity" in result.required_actions
+
+
+@pytest.mark.parametrize("evidence", [None, False, "true", "false", 1])
+def test_high_risk_override_fails_closed(evidence):
+    result = EUAIActVoicePolicy(is_high_risk_context=True).check({
+        "ai_identity_disclosed": True, "human_override_available": evidence,
+    })
+    assert not result.passed
+    assert "verify_human_override" in result.required_actions
+
+
+def test_high_risk_missing_override_and_explicit_opt_out():
+    context = {"ai_identity_disclosed": True}
+    assert not EUAIActVoicePolicy(is_high_risk_context=True).check(context).passed
+    assert EUAIActVoicePolicy(
+        is_high_risk_context=True, require_human_override_capability=False,
+    ).check(context).passed
+
+
+def test_scrubbing_flag_is_honored():
+    context = {"baa_verified": True, "transfer_initiated": True, "entities": {"ssn": "x"}}
+    assert not HIPAAVoicePolicy().check(context).passed
+    assert HIPAAVoicePolicy(scrub_phi_before_transfer=False).check(context).passed
