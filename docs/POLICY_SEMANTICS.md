@@ -41,8 +41,8 @@ Inspect LiveKit’s `hipaa_audit` and Amazon Connect’s
 
 **Publication now gates on the policy decision:** LiveKit `transfer()` raises
 `RuntimeError` before publishing when `hipaa_audit.passed` is absent or not true.
-`on_confidence_low()` checks before recording escalation state, then rechecks at
-publication. A failed check does not publish or disconnect the caller. If state
+`on_confidence_low()` checks and preflights the exact prospective packet before
+recording escalation state, then rechecks authorization before publication. A failed check does not publish or disconnect the caller. If state
 changes between these checks, the second can reject publication after escalation
 metadata was recorded; this is not a transactional lock on external evidence. Previously
 these methods ignored a failing result. Applications using the default policy

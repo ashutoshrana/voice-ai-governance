@@ -22,7 +22,7 @@ Start with the [warm-transfer example below](#warm-transfer-state-management), t
 
 ### Integration and runtime limits
 
-Your application owns authentication, telephony sessions, provider credentials, routing, and confirmation that a human accepted the transfer. An adapter builds or sends integration-specific data; a successful payload build is not proof of a completed call transfer. The included adapters are starting points to test against your installed SDK and provider configuration. In particular, the LiveKit adapter has not been validated against a live telephony deployment or fully migrated to the modern SDK.
+Your application owns authentication, telephony sessions, provider credentials, routing, and confirmation that a human accepted the transfer. An adapter builds or sends integration-specific data; a successful payload build is not proof of a completed call transfer. The included adapters are starting points to test against your installed SDK and provider configuration. The LiveKit publication boundary is qualified against installed SDKs as documented in [the LiveKit guide](docs/LIVEKIT.md); no live-room or telephony deployment validation is claimed.
 
 Regex/key-based redaction can miss personal data outside its configured patterns. Consent checks use the records you supply; the library does not independently establish that consent is valid. Regulatory references describe intended control areas, not certification or a guarantee of legal compliance. Redis transactions protect state updates, but external telephony delivery is not part of that transaction. See [reliability limits](#reliability-updates-030) for concurrency, retries, and storage behavior.
 
@@ -281,28 +281,9 @@ if message.compliance_passed:
 
 Run the [no-credentials handoff contract demo](docs/HANDOFF_CONTRACT.md) to distinguish context publication from a confirmed connection.
 
-```python
-from voice_ai_governance.adapters.livekit import LiveKitWarmTransferAdapter
-from voice_ai_governance.state import WarmTransferStateManager
-from voice_ai_governance.pii import PIIScrubber
-
-adapter = LiveKitWarmTransferAdapter(
-    state_manager=WarmTransferStateManager(redis_client=redis_client, pii_scrubber=PIIScrubber()),
-)
-
-# In your LiveKit Agents entrypoint:
-async def entrypoint(ctx: JobContext):
-    await ctx.connect()
-    identity = adapter.extract_caller_identity(ctx.job.metadata)
-    # ... run voice pipeline ...
-    # When confidence gate fires:
-    await adapter.on_confidence_low(
-        ctx, confidence_score=0.42, threshold=0.65,
-        recipient_identity=authorized_recipient_identity,
-    )
-    # Submits scrubbed context only to the selected room participant.
-    # Separately use native provider orchestration to connect the human.
-```
+Use the [complete registration and dispatch example](docs/LIVEKIT.md). It creates
+state before dispatch, records trusted consent/BAA evidence and explains how the
+worker finds the same session. Creating an adapter alone is insufficient.
 
 Requires: `pip install "voice-ai-governance[livekit]>=0.5.1"` (installs LiveKit Agents 1.8.7+ `<2` and patched OpenTelemetry API 1.45.1+).
 
@@ -475,4 +456,4 @@ Return isolated in-memory conversation snapshots and redact nested dictionary ke
 
 State returned by `get_state` and `update_state` is a snapshot; persist changes through `update_state`. This matches Redis behavior and prevents callers from mutating terminal state outside the update path. Dictionary keys are checked with the configured PII patterns, including inside sequences. Two keys that redact to the same text raise `ValueError`; non-string keys raise `TypeError`. Original data remains untouched. Regex/key detection is still bounded by its configured patterns.
 
-LiveKit session `userdata` is shared across agents: keep authoritative state behind the manager rather than exposing its internals. [Official session guidance](https://docs.livekit.io/agents/logic/sessions/). This change does not claim live telephony validation or a full modern LiveKit SDK migration.
+LiveKit session `userdata` is shared across agents: keep authoritative state behind the manager rather than exposing its internals. [Official session guidance](https://docs.livekit.io/agents/logic/sessions/). Installed-SDK packet publication is qualified as described in [the LiveKit guide](docs/LIVEKIT.md); live telephony and native transfer orchestration remain unvalidated and application-owned.

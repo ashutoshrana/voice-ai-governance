@@ -10,28 +10,21 @@ Regulatory citations:
   - EU AI Act: Article 14 (human oversight capability for high-risk AI systems)
 
 Install:
-    pip install "livekit-agents>=1.6.0" "voice-ai-governance[livekit]"
+    pip install "voice-ai-governance[livekit]"
 
 Usage:
-    from livekit.agents import JobContext, WorkerOptions, cli
-    from voice_ai_governance.adapters.livekit import LiveKitWarmTransferAdapter
+    See docs/LIVEKIT.md for state registration, trusted consent/BAA evidence,
+    targeted publication and the installed-SDK qualification boundary.
 
-    adapter = LiveKitWarmTransferAdapter()
-
-    async def entrypoint(ctx: JobContext):
-        await ctx.connect()
-        # On confidence gate trigger:
-        await adapter.on_confidence_low(ctx, confidence_score=0.42, threshold=0.65,
-                                        recipient_identity="authorized-recipient")
-
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import math
 import time
+import uuid
 from typing import Any, Dict, Optional
 
 try:
@@ -59,11 +52,13 @@ _TCPA_CITATION = "47 U.S.C. § 227"
 _HIPAA_CITATION = "45 CFR § 164"
 _EU_AI_ACT_CITATION = "EU AI Act Article 14 (human oversight capability)"
 
-# Minimum consent fields that must be present and truthy in job metadata
+# Consent fields must be literal JSON booleans, not truthy strings/numbers
 _REQUIRED_CONSENT_FIELDS = ("consent_obtained",)
 
-# LiveKit data channel used for SIP transfer signaling
+# Application data topic; not native SIP transfer signaling
 _TRANSFER_CHANNEL = "voice_governance_transfer"
+# https://docs.livekit.io/transport/data/packets/ (reliable user payload limit)
+_MAX_RELIABLE_PAYLOAD_BYTES = 15 * 1024
 
 
 class TCPAConsentError(Exception):
@@ -85,7 +80,8 @@ class TCPAConsentError(Exception):
         super().__init__(
             f"TCPA consent not documented (session={session_id!r}, "
             f"missing_field={missing_field!r}). "
-            f"Prior express written consent required under {citation}."
+            f"The configured consent safeguard requires a true attestation ({citation}); "
+            "the application must determine the applicable consent requirements."
         )
 
 
@@ -102,19 +98,8 @@ class LiveKitWarmTransferAdapter:
             scrubbing and BAA-attestation checks enabled on transfer. Supply trusted
             state.platform_metadata["baa_verified"]; inspect the returned audit.
 
-    Example:
-        adapter = LiveKitWarmTransferAdapter(
-            state_manager=WarmTransferStateManager(redis_client=redis_conn),
-        )
-
-        async def entrypoint(ctx: JobContext):
-            await ctx.connect()
-            session_id = adapter.extract_caller_identity(ctx.job.metadata)["session_id"]
-            # Pipeline runs; confidence gate fires at some threshold:
-            await adapter.on_confidence_low(
-                ctx, confidence_score=0.41, threshold=0.65,
-                recipient_identity=authorized_recipient_identity,
-            )
+    See docs/LIVEKIT.md for a complete registration/dispatch example. Creating
+    an adapter alone does not register state or establish consent/BAA evidence.
     """
 
     def __init__(
@@ -154,7 +139,7 @@ class LiveKitWarmTransferAdapter:
             "consent_timestamp": None,
         }
 
-        if not metadata_str:
+        if not isinstance(metadata_str, str) or not metadata_str:
             return defaults
 
         try:
@@ -175,7 +160,7 @@ class LiveKitWarmTransferAdapter:
             "caller_id": parsed.get("caller_id") or parsed.get("callerId"),
             "ani": parsed.get("ani") or parsed.get("from"),
             "session_id": parsed.get("session_id") or parsed.get("sessionId"),
-            "consent_obtained": bool(parsed.get("consent_obtained", False)),
+            "consent_obtained": parsed.get("consent_obtained") is True,
             "consent_timestamp": parsed.get("consent_timestamp")
             or parsed.get("consentTimestamp"),
         }
@@ -194,7 +179,7 @@ class LiveKitWarmTransferAdapter:
         explicit False — absence of documented consent is not consent.
         """
         for field_name in _REQUIRED_CONSENT_FIELDS:
-            if not identity.get(field_name):
+            if identity.get(field_name) is not True:
                 raise TCPAConsentError(
                     session_id=str(identity.get("session_id", "")),
                     missing_field=field_name,
@@ -211,12 +196,12 @@ class LiveKitWarmTransferAdapter:
         scrub_pii: bool = True,
     ) -> Dict[str, Any]:
         """
-        Build a LiveKit SIP-compatible warm transfer payload dict.
+        Build an application handoff-context payload, not a native SIP request.
 
         Retrieves accumulated conversation state from WarmTransferStateManager,
         runs HIPAA compliance check on the payload context, and serialises the
-        result to a dict that can be published over the LiveKit data channel or
-        passed to a SIP REFER/Replaces header via the LiveKit SIP trunk SDK.
+        result to a dict for targeted LiveKit data publication. Native SIP
+        transfer/consultation APIs and their schemas are separate.
 
         Args:
             session_id: Conversation session identifier previously registered
@@ -269,6 +254,17 @@ class LiveKitWarmTransferAdapter:
             self._hipaa_policy.on_violation(violation)
 
         payload = handoff.to_dict()
+        if payload.get("session_id", session_id) != session_id:
+            # Preserve only canonical UUIDv4 correlation IDs from registered state.
+            # Broad PII regexes can misclassify their digit groups as payment cards.
+            try:
+                parsed_id = uuid.UUID(session_id)
+                canonical_id = parsed_id.version == 4 and str(parsed_id) == session_id
+            except (ValueError, TypeError, AttributeError):
+                canonical_id = False
+            if state is None or state.session_id != session_id or not canonical_id:
+                raise ValueError("Redaction changed a noncanonical session identifier; refusing ambiguous handoff")
+            payload["session_id"] = session_id
         payload["_meta"] = {
             "adapter": "livekit",
             "transfer_channel": _TRANSFER_CHANNEL,
@@ -306,7 +302,9 @@ class LiveKitWarmTransferAdapter:
         identity = self.extract_caller_identity(metadata)
         self._assert_tcpa_consent(identity)
         session_id = identity.get("session_id")
-        state = self._state_manager.get_state(session_id) if session_id else None
+        if not isinstance(session_id, str) or not session_id.strip():
+            raise ValueError("A nonempty registered session ID string is required")
+        state = self._state_manager.get_state(session_id)
         if state is None or state.status not in (TransferStatus.ACTIVE, TransferStatus.ESCALATING):
             raise ValueError("An active or escalating registered session is required")
         return session_id
@@ -338,7 +336,8 @@ class LiveKitWarmTransferAdapter:
         session_id = self._publication_session(ctx, recipient_identity)
         payload = self.build_transfer_payload(session_id, reason=reason, scrub_pii=True)
         self._assert_hipaa_publication(payload)
-        await _publish_transfer_data(ctx, payload, recipient_identity)
+        raw = _encode_transfer_payload(payload)
+        await _publish_transfer_data(ctx, raw, recipient_identity)
         logger.info("Handoff context publication submitted (session=%s)", session_id)
 
     # ------------------------------------------------------------------
@@ -359,13 +358,43 @@ class LiveKitWarmTransferAdapter:
         separately confirm a human connection; this hook does not end the call.
         Invalid destinations, consent, or sessions are rejected before state updates.
         """
+        for name, value in (("confidence_score", confidence_score), ("threshold", threshold)):
+            if (isinstance(value, bool) or not isinstance(value, (int, float))
+                    or not 0 <= value <= 1 or not math.isfinite(value)):
+                raise ValueError(f"{name} must be a finite number between 0 and 1")
         session_id = self._publication_session(ctx, recipient_identity)
+        payload = self.build_transfer_payload(session_id, reason="confidence_escalation")
+        self._assert_hipaa_publication(payload)
+        # Build one prospective packet before mutating state. Publish these exact
+        # bytes, rather than rebuilding a potentially larger packet after update.
+        payload["escalation_trigger"] = "low_confidence"
+        payload["confidence_at_transfer"] = confidence_score
+        payload["caller_summary"] += " Escalation signal: low confidence."
+        raw = _encode_transfer_payload(payload)
+
+        def record_if_eligible(state: Any) -> None:
+            if state.status not in (TransferStatus.ACTIVE, TransferStatus.ESCALATING):
+                raise ValueError("Session is no longer eligible for escalation")
+            decision = self._hipaa_policy.check({
+                "transfer_initiated": True,
+                "phi_scrubbed": payload.get("pii_scrubbed", False),
+                "entities": payload.get("collected_entities", {}),
+                "baa_verified": state.platform_metadata.get("baa_verified"),
+                "recording_active": state.platform_metadata.get("recording_active", False),
+                "consent_obtained": state.consent_obtained,
+            })
+            if decision.passed is not True:
+                raise RuntimeError("HIPAA policy check did not pass; escalation was not recorded")
+            _set_escalation_fields(state, confidence_score, threshold)
+
+        updated = self._state_manager.update_state(session_id, record_if_eligible)
+        if updated is None:
+            raise ValueError("Session disappeared before escalation could be recorded")
+        # Preserve authorization rechecks without rebuilding the serialized packet.
+        if self._publication_session(ctx, recipient_identity) != session_id:
+            raise ValueError("Session changed before publication")
         self._assert_hipaa_publication(self.build_transfer_payload(session_id))
-        self._state_manager.update_state(
-            session_id,
-            lambda state: _set_escalation_fields(state, confidence_score, threshold),
-        )
-        await self.transfer(ctx, reason="confidence_escalation", recipient_identity=recipient_identity)
+        await _publish_transfer_data(ctx, raw, recipient_identity)
 
 
 # ------------------------------------------------------------------
@@ -388,13 +417,23 @@ def _set_escalation_fields(state: Any, score: float, threshold: float) -> None:
     state.platform_metadata["escalated_at"] = time.time()
 
 
-async def _publish_transfer_data(ctx: Any, payload: Dict[str, Any], recipient_identity: str) -> None:
+def _encode_transfer_payload(payload: dict[str, Any]) -> bytes:
+    """Reject oversize packets, never silently truncate governance context."""
+    raw = json.dumps(payload, default=str, ensure_ascii=False, allow_nan=False).encode("utf-8")
+    if len(raw) > _MAX_RELIABLE_PAYLOAD_BYTES:
+        raise ValueError(
+            f"Handoff context exceeds the {_MAX_RELIABLE_PAYLOAD_BYTES}-byte reliable packet limit; "
+            "use an application-managed authorized reference or reduce context before retrying"
+        )
+    return raw
+
+
+async def _publish_transfer_data(ctx: Any, raw: bytes, recipient_identity: str) -> None:
     """Submit one reliable packet; delivery and human acceptance are not guaranteed.
 
     Never broaden the destination or suppress SDK failures. The caller owns
     acknowledgment, retries, and connection orchestration.
     """
-    raw = json.dumps(payload, default=str).encode()
     await ctx.room.local_participant.publish_data(
         raw,
         reliable=True,

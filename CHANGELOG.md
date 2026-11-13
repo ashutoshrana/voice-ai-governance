@@ -8,6 +8,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Preserve trusted registered canonical UUIDv4 correlation IDs when PII regexes falsely match their digits; reject redaction-altered noncanonical identifiers rather than publishing an ambiguous handoff.
+
+- Harden LiveKit dispatch metadata: require literal boolean consent and a nonempty string session ID; reject malformed metadata without accepting truthy strings/numbers. Consent errors describe the configured safeguard rather than a blanket legal rule.
+- Enforce LiveKit's 15 KiB reliable user-payload limit on exact JSON UTF-8 bytes. The confidence hook preflights prospective fields before state mutation, publishes that same packet and rechecks state/authorization. No truncation; invalid scores fail without effects.
+- Add real installed-SDK packet-boundary qualification (Agents 1.8.7 / RTC 1.1.20 and Agents 1.8.11 / RTC 1.2.0), independent of core-test SDK stubs, and a complete state/dispatch guide. This does not claim live-room/SIP validation.
+
 - LiveKit publication now rejects missing/failing HIPAA policy decisions with `RuntimeError`, without publishing or disconnecting. The confidence hook prechecks before escalation state updates. Migration: supply trusted BAA evidence to the default policy; see `docs/POLICY_SEMANTICS.md`.
 
 - Fix the previously unused BAA requirement: enabled policies now require literal `baa_verified=True`; missing or non-boolean evidence produces a critical failure. Applications must supply a verified attestation or explicitly disable the requirement after assessing applicability.
