@@ -24,7 +24,6 @@ import json
 import logging
 import math
 import time
-import uuid
 from typing import Any, Dict, Optional
 
 try:
@@ -254,17 +253,6 @@ class LiveKitWarmTransferAdapter:
             self._hipaa_policy.on_violation(violation)
 
         payload = handoff.to_dict()
-        if payload.get("session_id", session_id) != session_id:
-            # Preserve only canonical UUIDv4 correlation IDs from registered state.
-            # Broad PII regexes can misclassify their digit groups as payment cards.
-            try:
-                parsed_id = uuid.UUID(session_id)
-                canonical_id = parsed_id.version == 4 and str(parsed_id) == session_id
-            except (ValueError, TypeError, AttributeError):
-                canonical_id = False
-            if state is None or state.session_id != session_id or not canonical_id:
-                raise ValueError("Redaction changed a noncanonical session identifier; refusing ambiguous handoff")
-            payload["session_id"] = session_id
         payload["_meta"] = {
             "adapter": "livekit",
             "transfer_channel": _TRANSFER_CHANNEL,

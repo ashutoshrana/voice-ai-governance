@@ -124,6 +124,8 @@ class AsyncWarmTransferStateManager:
         state = await self.get_state(session_id)
         if not state:
             return None
+        if state.session_id != session_id:
+            raise ValueError("Stored session identifier does not match the requested session")
         return WarmTransferStateManager._make_payload(self, state, reason, scrub_pii)
 
     async def initiate_transfer(self, session_id: str) -> bool:

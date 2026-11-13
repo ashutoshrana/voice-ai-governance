@@ -8,6 +8,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Centralize the canonical UUIDv4 correlation safeguard in the shared sync/async handoff builder so all consuming adapters benefit. Remove the redundant LiveKit repair. Preserve redaction of identical content in other fields; fail closed for altered noncanonical IDs. Validate in-memory and real Redis paths without mutating stored state.
+
 - Preserve trusted registered canonical UUIDv4 correlation IDs when PII regexes falsely match their digits; reject redaction-altered noncanonical identifiers rather than publishing an ambiguous handoff.
 
 - Harden LiveKit dispatch metadata: require literal boolean consent and a nonempty string session ID; reject malformed metadata without accepting truthy strings/numbers. Consent errors describe the configured safeguard rather than a blanket legal rule.

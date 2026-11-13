@@ -100,3 +100,68 @@ async def test_redis_disconnect_propagates_without_local_fallback():
     with pytest.raises(ConnectionError):
         await manager.build_handoff_payload('session', 'retry')
     assert manager._local_store == {}
+
+
+@pytest.mark.parametrize("external_id", [False, True])
+@pytest.mark.parametrize("use_redis", [False, True])
+@pytest.mark.asyncio
+async def test_shared_handoff_correlation_sync_async(monkeypatch, request, use_redis, external_id):
+    import uuid
+
+    import redis
+    import redis.asyncio as async_redis
+
+    from voice_ai_governance import state as state_module
+
+    collision_id = "12345678-1234-4234-9234-123456789012"
+    sid_value = "123-45-6789" if external_id else collision_id
+    monkeypatch.setattr(state_module.uuid, "uuid4", lambda: sid_value)
+    socket_path = request.getfixturevalue("redis_socket") if use_redis else None
+    client = redis.Redis(unix_socket_path=socket_path) if use_redis else None
+    async_client = async_redis.Redis(unix_socket_path=socket_path) if use_redis else None
+    try:
+        sync = WarmTransferStateManager(client, pii_scrubber=PIIScrubber())
+        sid = sync.create_session()
+        def populate(state):
+            state.primary_intent = collision_id
+            state.add_turn("user", "", entities_detected={"reference": collision_id})
+        sync.update_state(sid, populate)
+        before = sync.get_state(sid).to_dict()
+        if external_id:
+            with pytest.raises(ValueError, match="noncanonical session identifier"):
+                sync.build_handoff_payload(sid, "handoff")
+            assert sync.build_handoff_payload(sid, "handoff", scrub_pii=False).session_id == sid
+        else:
+            payload = sync.build_handoff_payload(sid, "handoff")
+            assert payload.session_id == str(uuid.UUID(collision_id))
+            assert collision_id not in payload.primary_intent
+            assert collision_id not in str(payload.collected_entities)
+            assert collision_id not in payload.caller_summary
+        assert sync.get_state(sid).to_dict() == before
+        sync.update_state(sid, lambda state: setattr(state, "session_id", "abcdefab-cdef-4abc-8def-abcdefabcdef"))
+        with pytest.raises(ValueError, match="does not match"):
+            sync.build_handoff_payload(sid, "handoff")
+
+        manager = AsyncWarmTransferStateManager(async_client, pii_scrubber=PIIScrubber())
+        sid = await manager.create_session()
+        await manager.update_state(sid, populate)
+        before = (await manager.get_state(sid)).to_dict()
+        if external_id:
+            with pytest.raises(ValueError, match="noncanonical session identifier"):
+                await manager.build_handoff_payload(sid, "handoff")
+            assert (await manager.build_handoff_payload(sid, "handoff", scrub_pii=False)).session_id == sid
+        else:
+            payload = await manager.build_handoff_payload(sid, "handoff")
+            assert payload.session_id == collision_id
+            assert collision_id not in payload.primary_intent
+            assert collision_id not in str(payload.collected_entities)
+            assert collision_id not in payload.caller_summary
+        assert (await manager.get_state(sid)).to_dict() == before
+        await manager.update_state(sid, lambda state: setattr(state, "session_id", "abcdefab-cdef-4abc-8def-abcdefabcdef"))
+        with pytest.raises(ValueError, match="does not match"):
+            await manager.build_handoff_payload(sid, "handoff")
+    finally:
+        if client is not None:
+            client.close()
+        if async_client is not None:
+            await (getattr(async_client, "aclose", None) or async_client.close)()

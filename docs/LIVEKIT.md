@@ -62,11 +62,12 @@ oversize packets. Update dispatch producers and handle `ValueError` /
 
 ## Failure and size contract
 
-- Registered canonical UUIDv4 correlation IDs are preserved if pattern redaction
+- The shared handoff builder preserves registered canonical UUIDv4 correlation IDs if pattern redaction
   falsely matches their digit groups. Other IDs changed by redaction are rejected,
   not silently restored or transmitted under a corrupted correlation key. Other
   payload fields remain subject to the configured scrubber. This top-level UUID
-  correlation exception also applies to custom redaction patterns: do not put
+  correlation exception (shared by sync/async state managers and their adapters)
+  also applies to custom redaction patterns: do not put
   sensitive data in that schema field or treat it as a hidden/anonymized ID.
 - Consent must be literal JSON `true`, not `"true"`, `"false"`, `1`, or another
   truthy value. Session IDs must be nonempty strings referencing active or
