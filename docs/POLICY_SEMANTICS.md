@@ -5,7 +5,7 @@ certify compliance, classify legal applicability, operate telephony, or perform
 all required safeguards. Applications must apply decisions before the relevant
 action and retain appropriate evidence. See [sources](REGULATORY_SOURCES.md).
 
-## Changes after 0.5.1
+## Changes in 0.6.0
 
 - `HIPAAVoicePolicy(require_baa_verification=True)` now requires literal
   `baa_verified=True` on every check. Previously the flag was unused. Missing,

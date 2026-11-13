@@ -25,5 +25,5 @@ keywords:
   - pii-scrubbing
   - pipecat
   - twilio
-version: "0.5.1"
-date-released: "2026-11-02"
+version: "0.6.0"
+date-released: "2026-11-13"

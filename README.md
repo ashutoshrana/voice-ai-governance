@@ -58,11 +58,11 @@ Python 3.10+ with patched `pytest>=9.0.3`. Python 3.9 CI runs an installed-wheel
 core API smoke and compile check without development dependencies.
 
 ```bash
-pip install 'voice-ai-governance>=0.5.1'
+pip install 'voice-ai-governance>=0.6.0'
 # With Redis support:
-pip install "voice-ai-governance[redis]>=0.5.1"
+pip install "voice-ai-governance[redis]>=0.6.0"
 # With retained SDK installers:
-pip install "voice-ai-governance[all]>=0.5.1"
+pip install "voice-ai-governance[all]>=0.6.0"
 ```
 
 ### Security-qualified installers
@@ -285,7 +285,7 @@ Use the [complete registration and dispatch example](docs/LIVEKIT.md). It create
 state before dispatch, records trusted consent/BAA evidence and explains how the
 worker finds the same session. Creating an adapter alone is insufficient.
 
-Requires: `pip install "voice-ai-governance[livekit]>=0.5.1"` (installs LiveKit Agents 1.8.7+ `<2` and patched OpenTelemetry API 1.45.1+).
+Requires: `pip install "voice-ai-governance[livekit]>=0.6.0"` (installs LiveKit Agents 1.8.7+ `<2` and patched OpenTelemetry API 1.45.1+).
 
 **Migration:** `transfer()` and `on_confidence_low()` now require a keyword-only
 `recipient_identity`. Your application must authorize that participant and register
@@ -325,7 +325,7 @@ payload = adapter.build_transfer_payload(
 turns = adapter.extract_transcript(contact_id)
 ```
 
-Requires: `pip install "voice-ai-governance[amazon_connect]>=0.5.1"` (installs boto3).
+Requires: `pip install "voice-ai-governance[amazon_connect]>=0.6.0"` (installs boto3).
 
 ### CCPA Consumer Rights Enforcement
 

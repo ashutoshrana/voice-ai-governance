@@ -8,6 +8,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-11-13
+
 - Centralize the canonical UUIDv4 correlation safeguard in the shared sync/async handoff builder so all consuming adapters benefit. Remove the redundant LiveKit repair. Preserve redaction of identical content in other fields; fail closed for altered noncanonical IDs. Validate in-memory and real Redis paths without mutating stored state.
 
 - Preserve trusted registered canonical UUIDv4 correlation IDs when PII regexes falsely match their digits; reject redaction-altered noncanonical identifiers rather than publishing an ambiguous handoff.
@@ -21,7 +23,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Fix the previously unused BAA requirement: enabled policies now require literal `baa_verified=True`; missing or non-boolean evidence produces a critical failure. Applications must supply a verified attestation or explicitly disable the requirement after assessing applicability.
 - Fail closed on missing/non-boolean human-override evidence in configured high-risk EU policies. Honor the PHI-scrubbing option. Add keyword-only `block_on_violation` to HIPAA/EU policies; default advisory behavior for noncritical violations remains compatible.
 - Preserve legacy rule IDs while correcting recording-consent and ADMT references. Prefer specific ADMT phrases over generic opt-out matching. Document source dates, policy limits and adapter migration in `docs/POLICY_SEMANTICS.md` and `docs/REGULATORY_SOURCES.md`.
-- Correct vacated FCC one-to-one attribution and absolute SMS privacy claims. Synchronize citation metadata with the published 0.5.1 release; this work remains unreleased.
+- Correct vacated FCC one-to-one attribution and absolute SMS privacy claims. Synchronize citation metadata with release metadata.
 
 - Correct AI-interaction disclosure references to EU AI Act Article 50(1) in documentation and violation text. Preserve the historical `EUAIA-13.1-01` rule identifier for compatibility; policy decisions are unchanged. Historical release descriptions below are retained.
 - Distinguish download activity from independently verified adoption and clarify the scope of configurable compliance checks.

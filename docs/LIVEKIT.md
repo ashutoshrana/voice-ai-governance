@@ -8,7 +8,7 @@ for those operations. A packet is not a SIP header or native transfer request.
 
 ## Register trusted state before dispatch
 
-Install `voice-ai-governance[livekit]`. This example uses one process; with separate
+Install `voice-ai-governance[livekit]>=0.6.0`. This example uses one process; with separate
 dispatch and worker processes, use the same Redis-backed state manager/storage.
 Never create an unrelated session ID in the worker and expect dispatch metadata
 to locate it. The application owns authentication and recipient authorization.
@@ -53,7 +53,7 @@ consent flag is a configured safeguard, not a determination of which consent law
 applies. See [policy semantics](POLICY_SEMANTICS.md) for the BAA default, explicit
 opt-outs after applicability review, and advisory versus strict policy behavior.
 
-## Migration after 0.5.1
+## Migration to 0.6.0 from 0.5.1
 
 These checks intentionally reject inputs previously accepted: truthy non-boolean
 consent, malformed session IDs, nonfinite/out-of-range confidence values, and
